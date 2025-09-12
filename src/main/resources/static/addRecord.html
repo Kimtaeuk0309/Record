@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>기록입력</title>
+</head>
+<body>
+
+<h1>점수 등록</h1>
+<form id="playerForm" style="display: flex; flex-direction: column; gap: 12px;">
+
+    <!-- Player 1 -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.9em; min-width: 30px;">동</span>
+        <input type="hidden" name="records[0].direction" value="동">
+        <input list="nicknameList" type="text" name="records[0].nickname" placeholder="닉네임" required style="width: 200px;">
+        <input type="number" class="score" name="records[0].score" placeholder="점수" required min="0" style="width: 100px;">
+        <input type="text" class="yaku" name="records[0].yakuList" placeholder="역만입력" style="width: 180px;">
+    </div>
+
+    <!-- Player 2 -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.9em; min-width: 30px;">남</span>
+        <input type="hidden" name="records[1].direction" value="남">
+        <input list="nicknameList" type="text" name="records[1].nickname" placeholder="닉네임" required style="width: 200px;">
+        <input type="number" class="score" name="records[1].score" placeholder="점수" required min="0" style="width: 100px;">
+        <input type="text" class="yaku" name="records[1].yakuList" placeholder="역만입력" style="width: 180px;">
+    </div>
+
+    <!-- Player 3 -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.9em; min-width: 30px;">서</span>
+        <input type="hidden" name="records[2].direction" value="서">
+        <input list="nicknameList" type="text" name="records[2].nickname" placeholder="닉네임" required style="width: 200px;">
+        <input type="number" class="score" name="records[2].score" placeholder="점수" required min="0" style="width: 100px;">
+        <input type="text" class="yaku" name="records[2].yakuList" placeholder="역만입력" style="width: 180px;">
+    </div>
+
+    <!-- Player 4 -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.9em; min-width: 30px;">북</span>
+        <input type="hidden" name="records[3].direction" value="북">
+        <input list="nicknameList" type="text" name="records[3].nickname" placeholder="닉네임" required style="width: 200px;">
+        <input type="number" class="score" name="records[3].score" placeholder="점수" required min="0" style="width: 100px;">
+        <input type="text" class="yaku" name="records[3].yakuList" placeholder="역만입력" style="width: 180px;">
+    </div>
+
+    <!-- 숨겨진 타임스탬프 필드 -->
+    <input type="hidden" id="timestampInput" name="timestamp" />
+
+    <!-- 합계 영역 -->
+    <div style="margin-top: 10px;">
+        <div id="sumMessage" style="font-weight: bold; font-size: 1.2em; color: red;">0</div>
+        <div id="validationMessage" style="font-size: 0.9em; margin-top: 4px; color: red;">
+            점수의 총합은 100000이 되어야 합니다.
+        </div>
+    </div>
+
+    <button id="submitBtn" type="button" style="width: 570px;" disabled>등록</button>
+</form>
+
+<datalist id="nicknameList"></datalist>
+
+<script src="js/common.js"></script>
+<script>
+    const scoreInputs = document.querySelectorAll(".score");
+    const sumMessage = document.getElementById("sumMessage");
+    const validationMessage = document.getElementById("validationMessage");
+    const submitBtn = document.getElementById("submitBtn");
+    const nicknameList = document.getElementById("nicknameList");
+    const playerForm = document.getElementById("playerForm");
+    const timestampInput = document.getElementById("timestampInput");
+
+    let recordSetId = null;
+    let nicknameMap = new Map(); // 소문자 닉네임 → 실제 닉네임 매핑 저장
+
+    async function loadNicknames() {
+        try {
+            const response = await authFetch('/api/members/nicknames');
+            if (response.ok) {
+                const nicknames = await response.json();
+                nicknameList.innerHTML = '';
+                nicknameMap.clear();
+                nicknames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    nicknameList.appendChild(option);
+                    nicknameMap.set(name.toLowerCase(), name); // 소문자 키로 실제 닉네임 저장
+                });
+            } else {
+                console.error('닉네임 목록 불러오기 실패:', response.status);
+            }
+        } catch (err) {
+            console.error('닉네임 목록 불러오기 에러:', err);
+        }
+    }
+
+    // 닉네임 유효성 검사 및 실제 닉네임 반환 (대소문자 무시)
+    function getNormalizedNickname(inputNickname) {
+        const lowerInput = inputNickname.trim().toLowerCase();
+        return nicknameMap.get(lowerInput) || null;
+    }
+
+    function validateSum() {
+        let sum = 0;
+        scoreInputs.forEach(input => {
+            sum += Number(input.value) || 0;
+        });
+        sumMessage.textContent = sum;
+        if (sum === 100000) {
+            sumMessage.style.color = "green";
+            validationMessage.textContent = "등록 가능합니다.";
+            validationMessage.style.color = "green";
+            submitBtn.disabled = false;
+        } else {
+            sumMessage.style.color = "red";
+            validationMessage.textContent = "점수의 총합은 100000이 되어야 합니다.";
+            validationMessage.style.color = "red";
+            submitBtn.disabled = true;
+        }
+    }
+
+    // 폼 데이터 수집, 닉네임을 올바른 실제 닉네임으로 변환해 포함
+    function gatherFormData() {
+        const records = [];
+        for(let i = 0; i < 4; i++) {
+            const nicknameInput = playerForm.querySelector(`input[name="records[${i}].nickname"]`);
+            const rawNickname = nicknameInput.value.trim();
+            const normalizedNickname = getNormalizedNickname(rawNickname);
+            if (!normalizedNickname) {
+                alert(`입력한 닉네임 "${rawNickname}" 은(는) 존재하지 않습니다.`);
+                nicknameInput.focus();
+                throw new Error("유효하지 않은 닉네임");
+            }
+            const scoreStr = playerForm.querySelector(`input[name="records[${i}].score"]`).value.trim();
+            const direction = playerForm.querySelector(`input[name="records[${i}].direction"]`).value;
+            const yakuStr = playerForm.querySelector(`input[name="records[${i}].yakuList"]`).value.trim();
+            const score = Number(scoreStr);
+            let yakuList = yakuStr ? yakuStr.split(',').map(y => y.trim()).filter(y => y.length > 0) : [];
+            if (normalizedNickname && !isNaN(score)) {
+                records.push({ nickname: normalizedNickname, score, direction, yakuList });
+            }
+        }
+        return { records, timestamp: timestampInput.value };
+    }
+
+    function getCurrentTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hour}:${min}`;
+    }
+
+    async function submitForm() {
+        if (submitBtn.disabled) {
+            return; // 중복 클릭 방지
+        }
+        submitBtn.disabled = true;
+
+        timestampInput.value = getCurrentTimestamp();
+
+        let data;
+        try {
+            data = gatherFormData();
+        } catch(e) {
+            submitBtn.disabled = false;
+            return;
+        }
+
+        try {
+            let response;
+            if(recordSetId) {
+                response = await authFetch('/api/recordset/' + recordSetId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } else {
+                response = await authFetch('/api/recordset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            }
+            if (response.ok) {
+                alert("기록이 정상적으로 등록되었습니다.");
+                window.location.href = "index.html";
+            } else {
+                const errText = await response.text();
+                alert("저장 실패: " + errText);
+                submitBtn.disabled = false;
+            }
+        } catch (error) {
+            alert("서버 통신 중 오류 발생: " + error.message);
+            submitBtn.disabled = false;
+        }
+    }
+
+    function initializeFormFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        const recordsParam = urlParams.get('records');
+        if (id) {
+            recordSetId = id;
+        }
+        if (recordsParam) {
+            try {
+                const decoded = decodeURIComponent(recordsParam);
+                const records = JSON.parse(decoded);
+                if (Array.isArray(records) && records.length === 4) {
+                    for (let i = 0; i < 4; i++) {
+                        const rec = records[i];
+                        const nicknameInput = playerForm.querySelector(`input[name="records[${i}].nickname"]`);
+                        const scoreInput = playerForm.querySelector(`input[name="records[${i}].score"]`);
+                        const yakuInput = playerForm.querySelector(`input[name="records[${i}].yakuList"]`);
+                        if (nicknameInput) nicknameInput.value = rec.nickname || '';
+                        if (scoreInput) scoreInput.value = rec.score != null ? rec.score : '';
+                        if (yakuInput && Array.isArray(rec.yakuList)) {
+                            yakuInput.value = rec.yakuList.join(', ');
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error('폼 초기화 에러:', e);
+            }
+        }
+    }
+
+    submitBtn.addEventListener("click", submitForm);
+    scoreInputs.forEach(input => input.addEventListener("input", validateSum));
+
+    window.onload = () => {
+        loadNicknames();
+        initializeFormFromURL();
+        validateSum();
+    }
+</script>
+
+</body>
+</html>

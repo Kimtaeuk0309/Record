@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.0'
+}
+
+group = 'me.taeuk'
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation 'org.json:json:20230227'
+    implementation 'mysql:mysql-connector-java:8.0.33'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+}
+
+def currentVersion = '2.2.0'
+def getNextVersion(String version) {
+    def parts = version.tokenize('.')
+    def major = parts[0].toInteger()
+    def minor = parts[1].toInteger() + 1
+    def patch = (parts.size() > 2) ? parts[2].toInteger() : 0
+    return "${major}.${minor}.${patch}"
+}
+version = currentVersion
+
+// 버전 자동 증가 태스크
+task bumpVersion {
+    doLast {
+        def nextVersion = getNextVersion(version)
+        version = nextVersion
+        println "Version bumped to ${version}"
+    }
+}
+
+// bootJar 실행 전에 버전 자동 증가 수행
+bootJar.dependsOn bumpVersion
+
+test {
+    useJUnitPlatform()
+}

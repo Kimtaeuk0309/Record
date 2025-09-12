@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>전체 기록 조회</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; max-width: 950px; }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        th { background-color: #f2f2f2; }
+        tbody tr:hover { background-color: #f9f9f9; }
+        button { padding: 4px 8px; margin: 0 2px; cursor: pointer; }
+        #backToIndexBtn {
+            margin: 20px 0;
+            padding: 8px 16px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h1>전체 기록 조회</h1>
+
+<div>
+    <button id="backToIndexBtn" type="button">돌아가기</button>
+</div>
+
+<table id="recordsTable">
+    <thead>
+    <tr id="headerRow">
+        <th>id</th>
+        <th>동</th>
+        <th>닉네임1</th>
+        <th>점수1</th>
+        <th>남</th>
+        <th>닉네임2</th>
+        <th>점수2</th>
+        <th>서</th>
+        <th>닉네임3</th>
+        <th>점수3</th>
+        <th>북</th>
+        <th>닉네임4</th>
+        <th>점수4</th>
+        <th>타임스탬프</th>
+        <th id="actionsTh">수정/삭제</th>
+    </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+<script src="js/common.js"></script>
+<script>
+    // Switch this line if you fetch from backend on login!
+    // 로그인 성공시 localStorage.setItem('loginUserId', username); 저장필수
+
+    // 특정 아이디로만 열 보이기
+    const ALLOWED_ID = "cudo";
+    function isEditAllowed() {
+        return localStorage.getItem('loginUserId') === ALLOWED_ID;
+    }
+
+    function formatTimestamp(isoString) {
+        if (!isoString) return '';
+        const datePart = isoString.substring(0, 10);
+        const timePart = isoString.substring(11, 16);
+        return datePart + ' ' + timePart;
+    }
+
+    async function loadRecordSets() {
+        try {
+            const response = await authFetch('/api/recordset');
+            if (!response.ok) throw new Error('기록 조회 실패: ' + response.status);
+
+            const recordSets = await response.json();
+            const tbody = document.querySelector('#recordsTable tbody');
+            tbody.innerHTML = '';
+
+            recordSets.forEach(recordSet => {
+                const records = JSON.parse(recordSet.records);
+                const directions = ['동', '남', '서', '북'];
+                const orderedRecords = directions.map(dir => records.find(r => r.direction === dir) || {nickname:"", score:"", direction: dir});
+
+                const tr = document.createElement('tr');
+
+                // id 칸
+                const tdId = document.createElement('td');
+                tdId.textContent = recordSet.id;
+                tr.appendChild(tdId);
+
+                orderedRecords.forEach((rec) => {
+                    // 방향
+                    const tdDirection = document.createElement('td');
+                    tdDirection.textContent = rec.direction || '';
+                    tr.appendChild(tdDirection);
+
+                    // 닉네임
+                    const tdNickname = document.createElement('td');
+                    tdNickname.textContent = rec.nickname || '';
+                    tr.appendChild(tdNickname);
+
+                    // 점수
+                    const tdScore = document.createElement('td');
+                    tdScore.textContent = rec.score != null ? rec.score : '';
+                    tr.appendChild(tdScore);
+                });
+
+                // 타임스탬프 칸
+                const tdTimestamp = document.createElement('td');
+                tdTimestamp.textContent = formatTimestamp(recordSet.timestamp);
+                tr.appendChild(tdTimestamp);
+
+                // 수정/삭제 칸 : cudo에게만 표시
+                if (isEditAllowed()) {
+                    const tdActions = document.createElement('td');
+
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = '수정';
+                    editBtn.addEventListener('click', () => {
+                        const params = new URLSearchParams({
+                            id: recordSet.id,
+                            records: JSON.stringify(records)
+                        });
+                        window.location.href = 'addRecord.html?' + params.toString();
+                    });
+                    tdActions.appendChild(editBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '삭제';
+                    deleteBtn.addEventListener('click', async () => {
+                        if (!confirm(`ID ${recordSet.id} 기록을 삭제하시겠습니까?`)) return;
+                        try {
+                            const res = await authFetch(`/api/recordset/${recordSet.id}`, { method: 'DELETE' });
+                            if (res.ok) {
+                                alert('삭제 성공');
+                                loadRecordSets();
+                            } else {
+                                const errorText = await res.text();
+                                alert('삭제 실패: ' + errorText);
+                            }
+                        } catch (err) {
+                            alert('삭제 중 오류 발생: ' + err.message);
+                        }
+                    });
+                    tdActions.appendChild(deleteBtn);
+
+                    tr.appendChild(tdActions);
+                }
+                tbody.appendChild(tr);
+            });
+
+            // thead 수정/삭제 th도 토글
+            document.getElementById('actionsTh').style.display = isEditAllowed() ? '' : 'none';
+
+            // tbody의 각 row에서도 actions td 숨김 처리
+            if (!isEditAllowed()) {
+                // 모든 tr의 마지막 td를 숨김
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    if (tr.children.length > 14)
+                        tr.lastElementChild.style.display = "none";
+                });
+            }
+
+        } catch(e) {
+            alert('기록 목록 불러오기 실패: ' + e.message);
+        }
+    }
+
+    window.onload = () => {
+        loadRecordSets();
+        // 상단 버튼
+        document.getElementById('backToIndexBtn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+        // 수정/삭제 th는 isEditAllowed()로 바로 제어 (loadRecordSets 결합 보장용)
+        document.getElementById('actionsTh').style.display = isEditAllowed() ? '' : 'none';
+    }
+</script>
+</body>
+</html>
