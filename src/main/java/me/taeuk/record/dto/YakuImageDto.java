@@ -20,4 +20,6 @@ public class YakuImageDto {
     public void setYaku(String yaku) { this.yaku = yaku; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+
 }
