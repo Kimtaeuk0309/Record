@@ -11,6 +11,7 @@ spring:
     url: jdbc:mysql://211.188.59.196:3306/cudo
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: mysql
+
   h2:
     console:
       enabled: false  # MySQL 사용 시 H2 콘솔은 비활성화하거나 그대로 둬도 무방

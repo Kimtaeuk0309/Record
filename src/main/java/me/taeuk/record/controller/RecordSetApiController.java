@@ -4,20 +4,26 @@ import me.taeuk.record.domain.RecordSet;
 import me.taeuk.record.dto.AddRecordsRequest;
 import me.taeuk.record.dto.NicknameDetailResponse;
 import me.taeuk.record.service.RecordSetService;
+import me.taeuk.record.service.YakuImageService; // 새로 추가한 이미지 서비스
+import me.taeuk.record.domain.YakuImage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recordset")
 public class RecordSetApiController {
 
     private final RecordSetService recordSetService;
+    private final YakuImageService yakuImageService; // 이미지 메타 정보 서비스
 
-    public RecordSetApiController(RecordSetService recordSetService) {
+    public RecordSetApiController(RecordSetService recordSetService, YakuImageService yakuImageService) {
         this.recordSetService = recordSetService;
+        this.yakuImageService = yakuImageService;
     }
 
     @PostMapping
@@ -26,7 +32,6 @@ public class RecordSetApiController {
             RecordSet saved = recordSetService.save(request.getRecords());
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (IllegalArgumentException e) {
-            // 닉네임 없음 등 검증 실패 시 400 Bad Request
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -85,14 +90,40 @@ public class RecordSetApiController {
         }
     }
 
+    @GetMapping("/all-filtered-records")
+    public ResponseEntity<String> getAllFilteredRecords() {
+        try {
+            String filteredAll = recordSetService.filterAllRecordSetsWithYakuList();
+            return ResponseEntity.ok(filteredAll);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("필터링 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    // 닉네임 상세 기록 + 역만 이미지 URL 포함 응답으로 확장
     @GetMapping("/detail")
     public ResponseEntity<?> getNicknameRecords(@RequestParam String nickname) {
         if (nickname == null || nickname.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("닉네임은 필수 파라미터입니다.");
         }
         try {
-            // 대소문자 구분 없이 닉네임으로 조회
+            // 기존 닉네임별 역만 기록 응답
             NicknameDetailResponse response = recordSetService.getRecordsWithCountByNickname(nickname);
+
+            // 닉네임에 연관된 역만 이미지 정보 조회
+            List<YakuImage> imageList = yakuImageService.getImagesByNickname(nickname);
+
+            // 역만별 이미지 URL 맵 생성 : yaku -> imageUrl (가장 최근 이미지 기준 등 정책 가능)
+            Map<String, String> yakuImageMap = imageList.stream()
+                    .collect(Collectors.toMap(
+                            YakuImage::getYaku,
+                            YakuImage::getImageUrl,
+                            (existing, replacement) -> replacement // 중복시 후자를 선택
+                    ));
+
+            response.setYakuImageMap(yakuImageMap);
+
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

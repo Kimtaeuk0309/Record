@@ -25,6 +25,19 @@ public class MemberService {
         return memberRepository.save(request.toEntity());
     }
 
+    public Member update(Long uid, String newNickname) {
+        Member member = memberRepository.findByUid(uid)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 UID 입니다: " + uid));
+        member.updateNickname(newNickname);
+        return memberRepository.save(member);
+    }
+
+    public void deleteByUid(Long uid) {
+        Member member = memberRepository.findByUid(uid)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 UID 입니다: " + uid));
+        memberRepository.delete(member);
+    }
+
     public Member findByUid(Long uid) {
         return memberRepository.findById(uid)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 UID 입니다."));

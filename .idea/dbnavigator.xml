@@ -38,11 +38,9 @@
       <console name="Connection" type="STANDARD" schema="cudo" session="Main"><![CDATA[select * from users;]]></console>
     </connection>
     <connection id="9ee44fa5-e9ad-4603-b093-d21ac9b85130">
-      <console name="cudo" type="STANDARD" schema="" session="Main"><![CDATA[INSERT INTO users (username, password) VALUES
-('admin', '$2a$10$mTw4MnanCDg6ioT6Ajtu3u9oCcZvFVAkWKEi7M/7EMalASVldgmAa'),
-('cudo','$2a$10$Fq6SAJU2rFxuDjVUeK2OzeWUWAg816dWBbLrvnb9Hcel1pWjFac62')
+      <console name="cudo" type="STANDARD" schema="" session="Main"><![CDATA[select * from R;
 
-select * from users;]]></console>
+delete from member where id = 28;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">
@@ -187,7 +185,7 @@ select * from users;]]></console>
           <deprecated-pwd value="" />
         </database>
         <properties>
-          <auto-commit value="false" />
+          <auto-commit value="true" />
         </properties>
         <ssh-settings>
           <active value="false" />

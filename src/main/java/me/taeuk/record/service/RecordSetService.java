@@ -6,6 +6,7 @@ import me.taeuk.record.domain.Member;
 import me.taeuk.record.domain.RecordSet;
 import me.taeuk.record.dto.AddRecordDataRequest;
 import me.taeuk.record.dto.NicknameDetailResponse;
+import me.taeuk.record.domain.YakuImage;
 import me.taeuk.record.repository.RecordSetRepository;
 import org.json.JSONObject;
 import org.springframework.http.HttpEntity;
@@ -13,6 +14,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -24,17 +28,21 @@ public class RecordSetService {
     private final RecordSetRepository recordSetRepository;
     private final ObjectMapper objectMapper;
     private final MemberService memberService;
+    private final YakuImageService yakuImageService;
 
     private static final String DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1410958891575148586/b56xjDKn0ZXTP7JGIbK5OA1YpUGAPRvWiD1mrU8ILXFDU0ldA08ThDBIWdl7P5_V_lVu";
     private static final RestTemplate restTemplate = new RestTemplate();
 
     public RecordSetService(RecordSetRepository recordSetRepository,
                             ObjectMapper objectMapper,
-                            MemberService memberService) {
+                            MemberService memberService,
+                            YakuImageService yakuImageService) {
         this.recordSetRepository = recordSetRepository;
         this.objectMapper = objectMapper;
         this.memberService = memberService;
+        this.yakuImageService = yakuImageService;
     }
+
 
     // 새 기록 저장 시 현재 시간으로 타임스탬프 자동 입력
     public RecordSet save(List<AddRecordDataRequest> requests) {
@@ -78,20 +86,13 @@ public class RecordSetService {
         }
     }
 
-    /**
-     * 닉네임을 대소문자 구분 없이 조회 후,
-     * 실제 DB에 저장된 닉네임 원문으로 보정하고 UID를 세팅함
-     */
     private List<AddRecordDataRequest> fillUidAndNormalizeNicknameForRequests(List<AddRecordDataRequest> requests) {
         return requests.stream()
                 .map(req -> {
                     Member member = memberService.findByNicknameIgnoreCase(req.getNickname())
                             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 닉네임: " + req.getNickname()));
 
-                    // 원본 닉네임으로 덮어쓰기 (대소문자 포함한 실제 등록 닉네임)
                     req.setNickname(member.getNickname());
-
-                    // 회원 uid 세팅
                     req.setUid(member.getUid());
                     return req;
                 })
@@ -120,10 +121,10 @@ public class RecordSetService {
         }
     }
 
-
     public List<AddRecordDataRequest> getRecordsFromRecordSet(RecordSet recordSet) {
         try {
-            return objectMapper.readValue(recordSet.getRecords(), new TypeReference<List<AddRecordDataRequest>>() {});
+            return objectMapper.readValue(recordSet.getRecords(), new TypeReference<List<AddRecordDataRequest>>() {
+            });
         } catch (Exception e) {
             throw new RuntimeException("기록 파싱 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
@@ -178,7 +179,6 @@ public class RecordSetService {
                 }
             }
 
-            // RecordSet의 timestamp를 각 기록에 세팅
             for (AddRecordDataRequest rec : filtered) {
                 rec.setTimestamp(set.getTimestamp());
             }
@@ -217,7 +217,6 @@ public class RecordSetService {
                 }
             }
 
-            // 각 기록에 RecordSet timestamp 세팅
             for (AddRecordDataRequest rec : filtered) {
                 rec.setTimestamp(set.getTimestamp());
             }
@@ -229,7 +228,21 @@ public class RecordSetService {
                 .filter(r -> r.getScore() != 0)
                 .count();
 
-        return new NicknameDetailResponse(totalCount, result);
+        List<YakuImage> imageList = yakuImageService.getImagesByNickname(nickname);
+
+        Map<String, String> yakuImageMap = imageList.stream()
+                .collect(Collectors.toMap(
+                        YakuImage::getYaku,
+                        YakuImage::getImageUrl,
+                        (existing, replacement) -> replacement // 중복시 후자 선택
+                ));
+
+        NicknameDetailResponse response = new NicknameDetailResponse();
+        response.setTotalCount(totalCount);
+        response.setRecords(result);
+        response.setYakuImageMap(yakuImageMap);
+
+        return response;
     }
 
     private List<AddRecordDataRequest> assignRanks(List<AddRecordDataRequest> records) {
@@ -242,15 +255,89 @@ public class RecordSetService {
                 "북", 4
         );
 
-        // 점수 내림차순 + 동점자 방향 순서 오름차순 정렬
         sorted.sort(Comparator.comparingInt(AddRecordDataRequest::getScore).reversed()
                 .thenComparing(r -> directionOrder.getOrDefault(r.getDirection(), 99)));
 
-        // 순위 단순 증가 부여
         for (int i = 0; i < sorted.size(); i++) {
             sorted.get(i).setRank(i + 1);
         }
 
         return sorted;
+    }
+
+    public String filterAllRecordSetsWithYakuList() throws Exception {
+        List<RecordSet> allRecordSets = recordSetRepository.findAll();
+
+        List<PlayerRecord> allFilteredRecords = new ArrayList<>();
+
+        for (RecordSet recordSet : allRecordSets) {
+            List<PlayerRecord> filtered = filterRecordsWithYakuListAsList(recordSet.getRecords(), recordSet.getTimestamp());
+            allFilteredRecords.addAll(filtered);
+        }
+
+        return objectMapper.writeValueAsString(allFilteredRecords);
+    }
+
+    public List<PlayerRecord> filterRecordsWithYakuListAsList(String recordsJson, LocalDateTime recordSetTimestamp) throws Exception {
+        if (recordsJson == null || recordsJson.isBlank()) {
+            return Collections.emptyList();
+        }
+        List<PlayerRecord> records = objectMapper.readValue(recordsJson, new TypeReference<List<PlayerRecord>>() {});
+        return records.stream()
+                .filter(r -> r.getYakuList() != null && !r.getYakuList().isEmpty())
+                .peek(r -> r.setTimestamp(recordSetTimestamp))
+                .collect(Collectors.toList());
+    }
+
+    // PlayerRecord DTO (내부클래스)
+    public static class PlayerRecord {
+        private String nickname;
+        private int score;
+        private String direction;
+        private List<String> yakuList;
+        private LocalDateTime timestamp;
+
+        public LocalDateTime getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(LocalDateTime timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public PlayerRecord() {
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public void setNickname(String nickname) {
+            this.nickname = nickname;
+        }
+
+        public int getScore() {
+            return score;
+        }
+
+        public void setScore(int score) {
+            this.score = score;
+        }
+
+        public String getDirection() {
+            return direction;
+        }
+
+        public void setDirection(String direction) {
+            this.direction = direction;
+        }
+
+        public List<String> getYakuList() {
+            return yakuList;
+        }
+
+        public void setYakuList(List<String> yakuList) {
+            this.yakuList = yakuList;
+        }
     }
 }

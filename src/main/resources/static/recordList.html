@@ -55,13 +55,20 @@
 </table>
 <script src="js/common.js"></script>
 <script>
-    // Switch this line if you fetch from backend on login!
-    // 로그인 성공시 localStorage.setItem('loginUserId', username); 저장필수
+    const ADMIN_ID = "admin";
+    const CUDO_ID = "cudo";
 
-    // 특정 아이디로만 열 보이기
-    const ALLOWED_ID = "cudo";
     function isEditAllowed() {
-        return localStorage.getItem('loginUserId') === ALLOWED_ID;
+        const id = localStorage.getItem('loginUserId');
+        return id === CUDO_ID;
+    }
+    function isAdminEditAllowed() {
+        const id = localStorage.getItem('loginUserId');
+        return id === ADMIN_ID;
+    }
+    function isActionsAllowed() {
+        const id = localStorage.getItem('loginUserId');
+        return id === ADMIN_ID || id === CUDO_ID;
     }
 
     function formatTimestamp(isoString) {
@@ -114,51 +121,61 @@
                 tdTimestamp.textContent = formatTimestamp(recordSet.timestamp);
                 tr.appendChild(tdTimestamp);
 
-                // 수정/삭제 칸 : cudo에게만 표시
-                if (isEditAllowed()) {
+                // 수정/삭제 칸
+                if (isActionsAllowed()) {
                     const tdActions = document.createElement('td');
 
-                    const editBtn = document.createElement('button');
-                    editBtn.textContent = '수정';
-                    editBtn.addEventListener('click', () => {
-                        const params = new URLSearchParams({
-                            id: recordSet.id,
-                            records: JSON.stringify(records)
+                    // 수정 버튼: cudo, admin 모두 노출
+                    if (isEditAllowed() || isAdminEditAllowed()) {
+                        const editBtn = document.createElement('button');
+                        editBtn.textContent = '수정';
+                        editBtn.addEventListener('click', () => {
+                            const params = new URLSearchParams({
+                                id: recordSet.id,
+                                records: JSON.stringify(records)
+                            });
+                            window.location.href = 'addRecord.html?' + params.toString();
                         });
-                        window.location.href = 'addRecord.html?' + params.toString();
-                    });
-                    tdActions.appendChild(editBtn);
+                        tdActions.appendChild(editBtn);
+                    }
 
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = '삭제';
-                    deleteBtn.addEventListener('click', async () => {
-                        if (!confirm(`ID ${recordSet.id} 기록을 삭제하시겠습니까?`)) return;
-                        try {
-                            const res = await authFetch(`/api/recordset/${recordSet.id}`, { method: 'DELETE' });
-                            if (res.ok) {
-                                alert('삭제 성공');
-                                loadRecordSets();
-                            } else {
-                                const errorText = await res.text();
-                                alert('삭제 실패: ' + errorText);
+                    // 삭제 버튼: 오직 cudo만 노출
+                    if (isEditAllowed()) {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '삭제';
+                        deleteBtn.addEventListener('click', async () => {
+                            if (!confirm(`ID ${recordSet.id} 기록을 삭제하시겠습니까?`)) return;
+                            try {
+                                const res = await authFetch(`/api/recordset/${recordSet.id}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                    alert('삭제 성공');
+                                    loadRecordSets();
+                                } else {
+                                    const errorText = await res.text();
+                                    alert('삭제 실패: ' + errorText);
+                                }
+                            } catch (err) {
+                                alert('삭제 중 오류 발생: ' + err.message);
                             }
-                        } catch (err) {
-                            alert('삭제 중 오류 발생: ' + err.message);
-                        }
-                    });
-                    tdActions.appendChild(deleteBtn);
+                        });
+                        tdActions.appendChild(deleteBtn);
+                    }
 
                     tr.appendChild(tdActions);
                 }
                 tbody.appendChild(tr);
             });
 
-            // thead 수정/삭제 th도 토글
-            document.getElementById('actionsTh').style.display = isEditAllowed() ? '' : 'none';
+            // thead 수정/삭제 th 노출 제어
+            const actionsTh = document.getElementById('actionsTh');
+            if (isActionsAllowed()) {
+                actionsTh.style.display = '';
+            } else {
+                actionsTh.style.display = 'none';
+            }
 
-            // tbody의 각 row에서도 actions td 숨김 처리
-            if (!isEditAllowed()) {
-                // 모든 tr의 마지막 td를 숨김
+            // tbody에서 actions td 숨김 처리
+            if (!isActionsAllowed()) {
                 tbody.querySelectorAll('tr').forEach(tr => {
                     if (tr.children.length > 14)
                         tr.lastElementChild.style.display = "none";
@@ -176,8 +193,13 @@
         document.getElementById('backToIndexBtn').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
-        // 수정/삭제 th는 isEditAllowed()로 바로 제어 (loadRecordSets 결합 보장용)
-        document.getElementById('actionsTh').style.display = isEditAllowed() ? '' : 'none';
+        // thead actions th 노출 제어 (최초 페이지 로드시)
+        const actionsTh = document.getElementById('actionsTh');
+        if (isActionsAllowed()) {
+            actionsTh.style.display = '';
+        } else {
+            actionsTh.style.display = 'none';
+        }
     }
 </script>
 </body>

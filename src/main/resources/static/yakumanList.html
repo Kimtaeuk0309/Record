@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>역만 목록</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .record-row {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .col-date, .col-nickname, .col-yaku-name, .col-yaku-img {
+            padding: 0 15px;
+        }
+        .col-date {
+            width: 150px;
+        }
+        .col-nickname {
+            width: 150px;
+        }
+        .col-yaku-name {
+            width: 200px;
+        }
+        .col-yaku-img img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+        .header {
+            font-weight: bold;
+            border-bottom: 2px solid black;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .header div {
+            padding: 0 15px;
+        }
+        .header .col-date {
+            width: 150px;
+        }
+        .header .col-nickname {
+            width: 150px;
+        }
+        .header .col-yaku-name {
+            width: 200px;
+        }
+        .header .col-yaku-img {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+<h1>전체 역만 기록 목록</h1>
+<div id="yakumanListContainer">로딩 중...</div>
+
+<script src="js/common.js"></script>
+<script>
+    // 닉네임별 역만 이미지 URL 목록을 반환하는 함수
+    async function fetchYakuImages(nickname) {
+        try {
+            const resp = await authFetch(`/api/yaku-images?nickname=${encodeURIComponent(nickname)}`);
+            if (!resp.ok) {
+                console.warn(`이미지 목록 불러오기 실패 for nickname: ${nickname}`);
+                return [];
+            }
+            return await resp.json(); // [{ yaku: '텐호', imageUrl: '/uploads/...' }, ...]
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
+    }
+
+    async function loadYakumanList() {
+        try {
+            const response = await authFetch('/api/recordset/all-filtered-records');
+            if (!response.ok) {
+                throw new Error('역만 기록을 불러오지 못했습니다.');
+            }
+            const records = await response.json();
+
+            const container = document.getElementById('yakumanListContainer');
+            container.innerHTML = '';
+
+            if (!records.length) {
+                container.innerHTML = '<p>역만 기록이 없습니다.</p>';
+                return;
+            }
+
+            // 헤더 추가
+            const header = document.createElement('div');
+            header.className = 'header';
+            header.innerHTML = `
+                <div class="col-date">날짜</div>
+                <div class="col-nickname">닉네임</div>
+                <div class="col-yaku-name">역만 이름</div>
+                <div class="col-yaku-img">스샷</div>
+            `;
+            container.appendChild(header);
+
+            // 닉네임별 이미지 목록 캐시 객체
+            const yakuImagesCache = {};
+
+            // 기록 하나당 역만이 여러 개일 수 있으므로 각 역만별 한 줄 생성
+            for (const record of records) {
+                const timestamp = record.timestamp ? new Date(record.timestamp).toISOString().slice(0, 10) : '-';
+                const nickname = record.nickname || '-';
+
+                // 해당 닉네임 이미지 목록 캐시에 없으면 API 호출
+                if (!yakuImagesCache[nickname]) {
+                    yakuImagesCache[nickname] = await fetchYakuImages(nickname);
+                }
+                const yakuImages = yakuImagesCache[nickname];
+
+                for (const yakuName of record.yakuList) {
+                    const row = document.createElement('div');
+                    row.className = 'record-row';
+
+                    // 날짜
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'col-date';
+                    dateDiv.textContent = timestamp;
+                    row.appendChild(dateDiv);
+
+                    // 닉네임
+                    const nickDiv = document.createElement('div');
+                    nickDiv.className = 'col-nickname';
+                    nickDiv.textContent = nickname;
+                    row.appendChild(nickDiv);
+
+                    // 역만 이름
+                    const yakuNameDiv = document.createElement('div');
+                    yakuNameDiv.className = 'col-yaku-name';
+                    yakuNameDiv.textContent = yakuName;
+                    row.appendChild(yakuNameDiv);
+
+                    // 역만 그림
+                    const yakuImgDiv = document.createElement('div');
+                    yakuImgDiv.className = 'col-yaku-img';
+                    const img = document.createElement('img');
+                    img.alt = yakuName;
+
+                    // 닉네임별 이미지 목록에서 해당 역만명에 맞는 이미지 URL 찾기
+                    //const baseUrl = 'http://211.188.59.196:8080';
+                    const imageObj = yakuImages.find(imgObj => imgObj.yaku === yakuName);
+                    //img.src = imageObj
+                    //? (imageObj.imageUrl.startsWith('http') ? imageObj.imageUrl : `${baseUrl}${imageObj.imageUrl}`)
+                    //: `${baseUrl}/images/yakuman/${encodeURIComponent(yakuName)}.png`;
+                    img.src = imageObj ? imageObj.imageUrl : `/images/yakuman/${encodeURIComponent(yakuName)}.png`; // fallback 이미지
+
+                    yakuImgDiv.appendChild(img);
+                    row.appendChild(yakuImgDiv);
+
+                    container.appendChild(row);
+                }
+            }
+        } catch (err) {
+            const container = document.getElementById('yakumanListContainer');
+            container.innerHTML = `<p>오류 발생: ${err.message}</p>`;
+        }
+    }
+
+    window.onload = loadYakumanList;
+</script>
+</body>
+</html>

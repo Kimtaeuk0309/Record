@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>멤버 리스트</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: auto; /* 넓이 자동 조정 */
+            max-width: 600px; /* 최대 넓이 제한 */
+            margin-top: 20px;
+            table-layout: auto; /* 칸 너비 내용에 맞게 조정 */
+        }
+        th, td {
+            border: 1px solid #aaa;
+            padding: 6px 10px; /* 살짝 작은 패딩 */
+            text-align: left;
+            white-space: nowrap; /* 내용 줄바꿈 방지 */
+        }
+        th {
+            background-color: #eee;
+        }
+        button.action-btn {
+            margin-right: 5px;
+            padding: 4px 8px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+<h1>등록된 멤버 리스트</h1>
+
+<button id="backButton">뒤로가기</button>
+
+<table id="memberTable">
+    <thead>
+    <tr>
+        <th style="width: 80px;">UID</th>
+        <th style="width: 150px;">닉네임</th>
+        <th style="width: 100px;">삭제</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- 회원 데이터가 여기에 동적으로 추가됨 -->
+    </tbody>
+</table>
+
+<script src="js/common.js"></script>
+<script>
+    document.getElementById('backButton').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+
+    async function fetchMembers() {
+        try {
+            const response = await authFetch('/api/members/list', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('멤버 리스트를 불러오는데 실패했습니다.');
+            }
+
+            const members = await response.json();
+
+            // 숨기고 싶은 id 목록 (Member 엔티티의 id 기준, 필요에 맞게 배열 수정)
+            const hiddenIds = [18, 19, 20, 21];
+            const filteredMembers = members.filter(member => !hiddenIds.includes(member.id));
+
+            const tbody = document.querySelector('#memberTable tbody');
+            tbody.innerHTML = '';
+
+            filteredMembers.forEach(member => {
+                const tr = document.createElement('tr');
+
+                // UID 칸
+                const tdUid = document.createElement('td');
+                tdUid.textContent = member.uid;
+                tr.appendChild(tdUid);
+
+                // 닉네임 칸
+                const tdNickname = document.createElement('td');
+                tdNickname.textContent = member.nickname;
+                tr.appendChild(tdNickname);
+
+                // 수정/삭제 칸
+                const tdActions = document.createElement('td');
+
+                // 삭제 버튼
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '삭제';
+                deleteBtn.className = 'action-btn';
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`닉네임 '${member.nickname}' 멤버를 삭제하시겠습니까?`)) {
+                        try {
+                            const delResponse = await authFetch(`/api/members/delete/${member.uid}`, {
+                                method: 'DELETE'
+                            });
+                            if (!delResponse.ok) {
+                                const errorText = await delResponse.text();
+                                alert(`삭제 실패: ${errorText}`);
+                                return;
+                            }
+                            alert('삭제 성공');
+                            fetchMembers(); // 목록 새로고침
+                        } catch (error) {
+                            alert(`삭제 중 오류 발생: ${error.message}`);
+                        }
+                    }
+                });
+                tdActions.appendChild(deleteBtn);
+
+                tr.appendChild(tdActions);
+
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchMembers);
+</script>
+
+</body>
+</html>

@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,19 +21,23 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
-
+    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     private final JwtProvider jwtProvider;
     private final UserDetailsService userDetailsService;
 
-    // 인증 제외 경로 - startsWith로 부분 일치 허용
+    // 인증 제외 경로 - 와일드카드 패턴 지원
     private static final List<String> EXCLUDE_URLS = List.of(
             "/api/auth/register",
             "/api/auth/login",
-            "/js/",
-            "/css/",
-            "/images/",
-            "/static/"
+            "/uploads/**",
+            "/js/**",
+            "/css/**",
+            "/images/**",
+            "/static/**",
+            "/static/css/**",
+            "/static/js/**",
+            "/static/media/**"
     );
 
     public JwtAuthenticationFilter(JwtProvider jwtProvider, UserDetailsService userDetailsService) {
@@ -47,8 +52,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // 인증 제외 경로 체크
-        boolean skipFilter = EXCLUDE_URLS.stream().anyMatch(path::startsWith);
+        // 와일드카드 패턴 매칭으로 인증 제외 경로 체크
+        boolean skipFilter = EXCLUDE_URLS.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+
         if (skipFilter) {
             filterChain.doFilter(request, response);
             return;

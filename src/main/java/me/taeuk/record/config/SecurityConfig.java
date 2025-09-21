@@ -4,7 +4,6 @@ import me.taeuk.record.jwt.JwtAuthenticationFilter;
 import me.taeuk.record.jwt.JwtProvider;
 import me.taeuk.record.repository.UserRepository;
 import me.taeuk.record.domain.User;
-import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -58,9 +57,9 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션 무상태 설정
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/js/**", "/css/**", "/images/**", "/*.html").permitAll()
+                        .requestMatchers("/js/**", "/css/**", "/images/**", "/*.html", "/uploads/**").permitAll()
                         .requestMatchers("/", "/index.html", "/api/auth/login", "/api/auth/register",
-                                "/api/statistics", "/detail.html", "/api/recordset/detail", "/reg.html", "/api/statistics/period").permitAll()
+                                "/api/statistics", "/detail.html", "/api/recordset/detail", "/reg.html", "/api/statistics/period", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
