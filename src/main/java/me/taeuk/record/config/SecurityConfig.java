@@ -58,8 +58,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/js/**", "/css/**", "/images/**", "/*.html", "/uploads/**").permitAll()
-                        .requestMatchers("/", "/index.html", "/api/auth/login", "/api/auth/register",
-                                "/api/statistics", "/detail.html", "/api/recordset/detail", "/reg.html", "/api/statistics/period", "/error").permitAll()
+                        .requestMatchers("/", "/index.html", "/api/auth/login", "/api/auth/register", "/api/yaku-images",
+                                "/api/statistics", "/detail.html", "/api/recordset/detail", "/reg.html", "/api/statistics/period", "/error", "/api/recordset/all-filtered-records").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

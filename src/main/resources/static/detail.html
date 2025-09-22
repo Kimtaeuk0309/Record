@@ -264,10 +264,11 @@
 
         recentRecords.reverse();
 
+        const rankColor = ['#4CAF50', '#2196F3', '#FFC107', '#F44336'];
+
         const recentRanks = recentRecords.map(r => r.rank);
         const recentLabels = recentRecords.map(() => '');
-
-
+        const recentPointColors = recentRanks.map(rank => rankColor[rank - 1]);
 
         const recentCtx = document.getElementById('recentRankChart').getContext('2d');
         if(window.recentRankChartInstance) {
@@ -281,11 +282,12 @@
                     label: '최근 20전 순위',
                     data: recentRanks,
                     fill: false,
-                    borderColor: '#1976D2',
+                    borderColor: '#D3D3D3',
                     backgroundColor: '#1976D2',
                     tension: 0.2,
                     pointRadius: 5,
                     pointHoverRadius: 7,
+                    pointBackgroundColor: recentPointColors
                 }]
             },
             options: {

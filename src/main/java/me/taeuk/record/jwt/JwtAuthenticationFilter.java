@@ -37,7 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/static/**",
             "/static/css/**",
             "/static/js/**",
-            "/static/media/**"
+            "/static/media/**",
+            "/api/recordset/all-filtered-records",
+            "/api/yaku-images"
     );
 
     public JwtAuthenticationFilter(JwtProvider jwtProvider, UserDetailsService userDetailsService) {
