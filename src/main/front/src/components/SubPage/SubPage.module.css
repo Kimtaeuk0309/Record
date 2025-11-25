@@ -1,0 +1,107 @@
+table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 950px;
+  margin-top: 30px;
+}
+
+.nickname-cell, td.nickname-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px; /* 필요에 따라 값 조정 */
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+#btnContainer {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+button {
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+h1 {
+  margin-bottom: 15px;
+}
+
+a.detail-link {
+  color: #1a73e8;
+  cursor: pointer;
+}
+
+a.detail-link:hover {
+  color: #0e4da4;
+}
+
+#loginForm {
+  margin-top: 20px;
+  max-width: 240px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+#loginForm input {
+  height: 28px;
+  font-size: 0.9em;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+#userId, #userPw {
+  width: 80px;
+}
+
+#loginBtn {
+  padding: 5px 5px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+#loginMessage {
+  color: red;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+footer {
+  margin-top: 40px;
+  padding: 20px 0;
+  text-align: center;
+  background-color: #f9f9f9;
+  font-size: 0.9em;
+  color: #555;
+}
+
+footer a {
+  color: #1DA1F2;
+  text-decoration: none;
+  margin-left: 8px;
+  font-size: 1.2em;
+}
+
+footer a:hover {
+  color: #0d95e8;
+}
+
+a:-webkit-any-link {
+  color: #1a73e8;
+  text-decoration: none;
+  cursor: pointer;
+}
+
