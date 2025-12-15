@@ -1,8 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+
+// 환경 변수로 어떤 폴더를 빌드할지 선택
+const FOLDER = process.env.REACT_APP_FOLDER || 'sub';
+
+let App;
+
+if (FOLDER === 'sub') {
+  App = require('./components/SubPage/SubPage').default;
+} else if (FOLDER === 'wall') {
+  App = require('./components/WallRecordSystem/WallRecordSystem').default;
+} else if (FOLDER === 'sub2') {
+  App = require('./components/SubPage2/SubPage2').default;
+}
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -10,8 +20,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

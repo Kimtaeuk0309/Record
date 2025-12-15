@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './SubPage.module.css';
+import styles from './SubPage2.module.css';
 /* global authFetch */
 
 function parseJwt(token) {
@@ -10,6 +10,21 @@ function parseJwt(token) {
   } catch {
     return null;
   }
+}
+
+function getTodayDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  console.log('Today Date:', { year, month, day });
+
+  return {
+    year: parseInt(year),
+    month: parseInt(month),
+    day: parseInt(day)
+  };
 }
 
 function getCurrentQuarterRange() {
@@ -64,7 +79,8 @@ const WallRecordSystem = () => {
     setLoginMessageVisible(true);
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     if (!userId.trim() || !userPw.trim()) {
       alert('아이디와 비밀번호를 모두 입력해주세요.');
       return;
@@ -89,6 +105,8 @@ const WallRecordSystem = () => {
       scheduleAutoLogout(token);
       setLoggedIn(true);
       setLoginMessageVisible(false);
+      setUserId('');
+      setUserPw('');
     } catch (error) {
       alert('로그인 중 오류가 발생했습니다: ' + error.message);
     }
@@ -97,15 +115,31 @@ const WallRecordSystem = () => {
   const handleLogout = () => logoutAndUI();
 
   const loadStatistics = async () => {
-    const { year, quarter } = getCurrentQuarterRange();
+    const { year, month, day } = getTodayDate();
     try {
-      const response = await fetch(`/api/statistics/byQuarter?year=${year}&quarter=${quarter}`);
+      const response = await fetch(`/api/statistics/v2/byDay?year=${year}&month=${month}&day=${day}`);
       if (!response.ok) throw new Error('통계 데이터 불러오기 실패: ' + response.status);
       let statsData = await response.json();
       statsData.sort((a, b) => b.totalPoints - a.totalPoints);
       setStats(statsData);
     } catch (error) {
       alert(error.message);
+    }
+  };
+
+  const loadNotices = async () => {
+    try {
+      const res = await fetch('/api/notices/main');
+      if (!res.ok) {
+        console.warn('공지사항 로드 실패:', res.status);
+        setNotices([]);
+        return;
+      }
+      const data = await res.json();
+      setNotices(Array.isArray(data) ? data.slice(0, 10) : []);
+    } catch (error) {
+      console.error('공지사항 로드 중 오류:', error);
+      setNotices([]);
     }
   };
 
@@ -130,29 +164,19 @@ const WallRecordSystem = () => {
       setLoginMessageVisible(true);
     }
 
-    async function fetchNotices() {
-          try {
-            const res = await authFetch('/api/notices');
-            if (!res.ok) throw new Error('공지사항 로드 실패');
-            const data = await res.json();
-            setNotices(data.slice(0, 10));
-          } catch {
-            setNotices([]);
-          }
-        }
-    fetchNotices();
+    loadNotices();
     loadStatistics();
   }, []);
 
-    const showNoticeModal = (notice) => {
-      setSelectedNotice(notice);
-      setModalVisible(true);
-    };
+  const showNoticeModal = (notice) => {
+    setSelectedNotice(notice);
+    setModalVisible(true);
+  };
 
-    const hideNoticeModal = () => {
-      setModalVisible(false);
-      setSelectedNotice(null);
-    };
+  const hideNoticeModal = () => {
+    setModalVisible(false);
+    setSelectedNotice(null);
+  };
 
   const { year, quarter } = getCurrentQuarterRange();
 
@@ -178,70 +202,93 @@ const WallRecordSystem = () => {
   };
 
   return (
-      <div className="container">
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 50 }}>
-        <img src="/logo.png" alt="logo" style={{ height: '60px', width: '40px' }} />
-        2025년 11월 22일 정모 기록
-        <img src="/logo.png" alt="logo" style={{ height: '60px', width: '40px' }} />
+    <div className={styles.container}>
+      {/* 헤더 */}
+      <h1 style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '10px',
+        fontSize: 'clamp(1.3em, 5vw, 1.8em)',
+        marginBottom: '20px'
+      }}>
+        <img src="/logo.png" alt="logo" style={{ height: '50px', width: 'auto' }} />
+        또바기들 기록 사이트
+        <img src="/logo.png" alt="logo" style={{ height: '50px', width: 'auto' }} />
       </h1>
 
+      {/* 로그인 폼 */}
       {!loggedIn && (
-        <div id="loginForm" className="loginForm" style={{ marginLeft: 50}}>
+        <form className={styles.loginForm} onSubmit={handleLogin}>
           <input
             type="text"
-            id="userId"
-            name="userId"
             placeholder="ID"
             autoComplete="username"
-            className="loginInput userIdPw"
+            className={styles.userIdPw}
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
+            required
           />
           <input
             type="password"
-            id="userPw"
-            name="userPw"
             placeholder="PW"
             autoComplete="current-password"
-            className="loginInput userIdPw"
+            className={styles.userIdPw}
             value={userPw}
             onChange={(e) => setUserPw(e.target.value)}
+            required
           />
-          <button type="button" id="loginBtn" className="loginBtn" onClick={handleLogin}>
+          <button type="submit" className={styles.loginBtn}>
             로그인
           </button>
-        </div>
+        </form>
       )}
 
-      {loggedIn && (
-        <div id="btnContainer" className="btnContainer" style={{ marginLeft: 50}}>
-          <a href="addmember.html"> <button type="button">멤버 등록</button> </a>
-          <a href="addRecord.html"> <button type="button">기록 입력</button> </a>
-          <a href="recordList.html"> <button type="button">전체 기록 조회</button> </a>
-          <a> <button type="button" id="logoutBtn" onClick={handleLogout}>로그아웃</button> </a>
-        </div>
-      )}
-
+      {/* 로그인 메시지 */}
       {loginMessageVisible && (
-        <div id="loginMessage" className="loginMessage" style={{ marginLeft: 50}}>
+        <div className={styles.loginMessage}>
           로그인 후 기록 입력이 가능합니다.
         </div>
       )}
 
-      <div id="alwaysVisibleBtnContainer" style={{ marginTop: 10, marginLeft: 50 }}>
-        <a href="periodList.html"> <button type="button">기간별 기록 조회</button> </a>
-        <a href="yakumanList.html"> <button type="button">역만 기록 조회</button> </a>
-        <a href="relativeRecord.html"> <button type="button">상대 전적 조회</button> </a>
+      {/* 로그인 후 버튼 */}
+      {loggedIn && (
+        <div className={styles.btnContainer}>
+          <a href="addmember.html">
+            <button type="button">멤버 등록</button>
+          </a>
+          <a href="addRecord.html">
+            <button type="button">기록 입력</button>
+          </a>
+          <a href="recordList.html">
+            <button type="button">전체 기록 조회</button>
+          </a>
+          <button type="button" onClick={handleLogout}>로그아웃</button>
+        </div>
+      )}
+
+      {/* 항상 보이는 버튼 */}
+      <div className={styles.alwaysVisibleBtnContainer}>
+        <a href="periodList.html">
+          <button type="button">기간별 기록 조회</button>
+        </a>
+        <a href="yakumanList.html">
+          <button type="button">역만 기록 조회</button>
+        </a>
+        <a href="relativeRecord.html">
+          <button type="button">상대 전적 조회</button>
+        </a>
       </div>
 
-      <div className="table-info" style={{ maxWidth: 950, marginTop: 30, marginLeft: 50, marginRight: 'auto' }}>
-        <h2>테이블 정보</h2>
-        <table id="noticeTable">
+      {/* 공지사항 테이블 */}
+      <div className={styles.tableInfo}>
+        <h2>룰 설명</h2>
+        <table className={styles.noticeTable}>
           <thead>
             <tr>
-              <th style={{ width: 70 }}>번호</th>
+              <th style={{ width: '70px' }}>번호</th>
               <th>제목</th>
-              <th style={{ width: 100 }}>날짜</th>
+              <th style={{ width: '100px' }}>날짜</th>
             </tr>
           </thead>
           <tbody>
@@ -251,9 +298,13 @@ const WallRecordSystem = () => {
               </tr>
             ) : (
               notices.map((notice) => (
-                <tr key={notice.id} style={{ cursor: 'pointer' }} onClick={() => showNoticeModal(notice)}>
+                <tr
+                  key={notice.id}
+                  onClick={() => showNoticeModal(notice)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td>{notice.id}</td>
-                  <td className="nickname-cell">{notice.title}</td>
+                  <td className={styles.nicknameCell}>{notice.title}</td>
                   <td>{notice.date}</td>
                 </tr>
               ))
@@ -262,94 +313,84 @@ const WallRecordSystem = () => {
         </table>
       </div>
 
-            {modalVisible && selectedNotice && (
-              <div
-                onClick={hideNoticeModal}
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0,0,0,0.4)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  zIndex: 1000,
-                }}
-              >
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    backgroundColor: 'white',
-                    padding: 20,
-                    borderRadius: 8,
-                    minWidth: 300,
-                    maxWidth: '90%',
-                    maxHeight: '80%',
-                    overflowY: 'auto',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                  }}
-                >
-                  <h4 style={{ marginBottom: 12 }}>{selectedNotice.title}</h4>
-                  <div style={{ whiteSpace: 'pre-wrap' }}>{selectedNotice.content}</div>
-                </div>
-              </div>
-            )}
+      {/* 공지글 모달 */}
+      {modalVisible && selectedNotice && (
+        <div
+          className={styles.modal}
+          onClick={hideNoticeModal}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className={styles.modalTitle}>{selectedNotice.title}</h4>
+            <div className={styles.modalDate}>{selectedNotice.date}</div>
+            <div className={styles.modalBody}>{selectedNotice.content}</div>
+            <button
+              className={styles.modalCloseBtn}
+              onClick={hideNoticeModal}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="ranking-table" style={{ maxWidth: 950, marginTop: 30, marginLeft: 50, marginRight: 'auto' }}>
-      <h2 style={{ marginTop: 30 }}>
-        정모 기록 & 순위
-      </h2>
-      <table id="rankingTable">
-        <thead>
-          <tr>
-            <th>순위</th>
-            <th>닉네임</th>
-            <th>총승점</th>
-            <th>평균승점</th>
-            <th>평균순위</th>
-            <th>1위횟수 (1위율)</th>
-            <th>2위횟수 (2위율)</th>
-            <th>3위횟수 (3위율)</th>
-            <th>4위횟수 (4위율)</th>
-            <th>총국수</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stats.length === 0 ? (
-            <tr>
-              <td colSpan={9}>기록이 없습니다.</td>
-            </tr>
-          ) : (
-            stats.map((stat, idx) => (
-              <tr key={stat.nickname}>
-                <td>{idx + 1}</td>
-                <td className="nickname-cell">
-                  <a
-                    href={`detail.html?nickname=${encodeURIComponent(stat.nickname)}`}
-                    className="detail-link"
-                    title={`${stat.nickname}의 상세 기록 보기`}
-                  >
-                    {stat.nickname}
-                  </a>
-                </td>
-                <td>{stat.totalPoints.toFixed(1)}</td>
-                <td>{stat.avgPoints.toFixed(1)}</td>
-                <td>{getAverageRank(stat).toFixed(2)}</td>
-                <td>{stat.firstPlaceCount} ({(stat.firstPlaceRate * 100).toFixed(1)}%)</td>
-                <td>{stat.secondPlaceCount} ({(stat.secondPlaceRate * 100).toFixed(1)}%)</td>
-                <td>{stat.thirdPlaceCount} ({(stat.thirdPlaceRate * 100).toFixed(1)}%)</td>
-                <td>{stat.fourthPlaceCount} ({(stat.fourthPlaceRate * 100).toFixed(1)}%)</td>
-                <td>{stat.totalCount}</td>
+      {/* 순위 테이블 */}
+      <div className={styles.rankingTable}>
+        <h2>대탁 기록 & 순위</h2>
+        <div className={styles.rankingTableWrapper}>
+          <table className={styles.rankingTableBody}>
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>닉네임</th>
+                <th>총승점</th>
+                <th>평균승점</th>
+                <th>평균순위</th>
+                <th>1위횟수 (1위율)</th>
+                <th>2위횟수 (2위율)</th>
+                <th>3위횟수 (3위율)</th>
+                <th>4위횟수 (4위율)</th>
+                <th>총국수</th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {stats.length === 0 ? (
+                <tr>
+                  <td colSpan={10}>기록이 없습니다.</td>
+                </tr>
+              ) : (
+                stats.map((stat, idx) => (
+                  <tr key={stat.nickname}>
+                    <td>{idx + 1}</td>
+                    <td>
+                      <a
+                        href={`detail.html?nickname=${encodeURIComponent(stat.nickname)}`}
+                        className={styles.detailLink}
+                        title={`${stat.nickname}의 상세 기록 보기`}
+                      >
+                        {stat.nickname}
+                      </a>
+                    </td>
+                    <td>{stat.totalPoints.toFixed(1)}</td>
+                    <td>{stat.avgPoints.toFixed(1)}</td>
+                    <td>{getAverageRank(stat).toFixed(2)}</td>
+                    <td>{stat.firstPlaceCount} ({(stat.firstPlaceRate * 100).toFixed(1)}%)</td>
+                    <td>{stat.secondPlaceCount} ({(stat.secondPlaceRate * 100).toFixed(1)}%)</td>
+                    <td>{stat.thirdPlaceCount} ({(stat.thirdPlaceRate * 100).toFixed(1)}%)</td>
+                    <td>{stat.fourthPlaceCount} ({(stat.fourthPlaceRate * 100).toFixed(1)}%)</td>
+                    <td>{stat.totalCount}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <footer>
+      {/* Footer */}
+      <footer className={styles.footer}>
         Copyright &copy; Cudo{' '}
         <a
           href="https://twitter.com/Cudo3399"
