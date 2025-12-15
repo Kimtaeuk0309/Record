@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>멤버 리스트</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: auto;
+            max-width: 600px;
+            margin-top: 20px;
+            table-layout: auto;
+        }
+        th, td {
+            border: 1px solid #aaa;
+            padding: 6px 10px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #eee;
+        }
+        button.action-btn {
+            margin-right: 5px;
+            padding: 4px 8px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+<h1>등록된 멤버 리스트</h1>
+
+<button id="backButton">뒤로가기</button>
+
+<table id="memberTable">
+    <thead>
+    <tr>
+        <th style="width: 80px;">UID</th>
+        <th style="width: 150px;">닉네임</th>
+        <th style="width: 100px;">수정/삭제</th>
+    </tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+</table>
+
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script>
+    document.getElementById('backButton').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+
+    async function fetchMembers() {
+        try {
+            const response = await authFetch('/api/members/list', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('멤버 리스트를 불러오는데 실패했습니다.');
+            }
+
+            const members = await response.json();
+
+
+            const hiddenIds = [];
+            const filteredMembers = members.filter(member => !hiddenIds.includes(member.id));
+
+            const tbody = document.querySelector('#memberTable tbody');
+            tbody.innerHTML = '';
+
+            filteredMembers.forEach(member => {
+                const tr = document.createElement('tr');
+
+                const tdUid = document.createElement('td');
+                tdUid.textContent = member.uid;
+                tr.appendChild(tdUid);
+
+                const tdNickname = document.createElement('td');
+                tdNickname.textContent = member.nickname;
+                tr.appendChild(tdNickname);
+
+                const tdActions = document.createElement('td');
+                const editBtn = document.createElement('button');
+
+                editBtn.textContent = '수정';
+                editBtn.className = 'action-btn';
+                editBtn.addEventListener('click', () => {
+                    window.location.href = `modifymember.html?uid=${encodeURIComponent(member.uid)}&nickname=${encodeURIComponent(member.nickname)}`;
+                });
+                tdActions.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '삭제';
+                deleteBtn.className = 'action-btn';
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`닉네임 '${member.nickname}' 멤버를 삭제하시겠습니까?`)) {
+                        try {
+                            const delResponse = await authFetch(`/api/members/delete/${member.uid}`, {
+                                method: 'DELETE'
+                            });
+                            if (!delResponse.ok) {
+                                const errorText = await delResponse.text();
+                                alert(`삭제 실패: ${errorText}`);
+                                return;
+                            }
+                            alert('삭제 성공');
+                            fetchMembers(); // 목록 새로고침
+                        } catch (error) {
+                            alert(`삭제 중 오류 발생: ${error.message}`);
+                        }
+                    }
+                });
+                tdActions.appendChild(deleteBtn);
+
+                tr.appendChild(tdActions);
+
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchMembers);
+</script>
+
+</body>
+</html>

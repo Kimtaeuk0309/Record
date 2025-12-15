@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멤버 등록</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        #addMemberForm {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ✅ 입력 필드 그룹 */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.95em;
+            color: #333;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        /* ✅ 모바일에서 입력필드 확대 방지 */
+        @media (max-width: 768px) {
+            input[type="number"],
+            input[type="text"] {
+                font-size: 16px;
+                padding: 14px;
+            }
+        }
+
+        /* ✅ 버튼 그룹 */
+        .button-group {
+            display: grid;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        /* 모바일: 세로 배치, 데스크톱: 가로 배치 */
+        @media (min-width: 481px) {
+            .button-group {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        /* 등록 버튼 (파란색) */
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            font-size: 1.05em;
+        }
+
+        button[type="submit"]:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        button[type="submit"]:active:not(:disabled) {
+            background-color: #004085;
+        }
+
+        button[type="submit"]:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* 보조 버튼 (회색) */
+        button[type="button"] {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        button[type="button"]:hover {
+            background-color: #545b62;
+        }
+
+        button[type="button"]:active {
+            background-color: #454d55;
+        }
+
+        /* ✅ 결과 메시지 */
+        #result {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+            animation: slideIn 0.3s ease-in-out;
+        }
+
+        #result.show {
+            display: block;
+        }
+
+        #result.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        #result.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ✅ 모바일 최적화 (≤480px) */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                padding: 15px;
+                border-radius: 6px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 25px;
+            }
+
+            .form-group {
+                gap: 6px;
+            }
+
+            label {
+                font-size: 0.9em;
+            }
+
+            input[type="number"],
+            input[type="text"] {
+                padding: 14px;
+                font-size: 16px;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+                gap: 8px;
+                margin-top: 8px;
+            }
+
+            button {
+                padding: 14px;
+                font-size: 1em;
+            }
+
+            #result {
+                margin-top: 15px;
+                padding: 12px;
+                font-size: 0.95em;
+            }
+        }
+
+        /* ✅ 태블릿 (481px ~ 768px) */
+        @media (min-width: 481px) and (max-width: 768px) {
+            .container {
+                padding: 18px;
+            }
+
+            h1 {
+                font-size: 1.6em;
+                margin-bottom: 28px;
+            }
+
+            input[type="number"],
+            input[type="text"] {
+                padding: 12px;
+                font-size: 0.95em;
+            }
+
+            button {
+                padding: 12px 14px;
+                font-size: 0.9em;
+            }
+        }
+
+        /* ✅ 데스크톱 (≥769px) */
+        @media (min-width: 769px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 30px;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            button {
+                padding: 12px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>멤버 등록</h1>
+
+    <form id="addMemberForm">
+        <!-- UID 입력 -->
+        <div class="form-group">
+            <label for="uid">UID</label>
+            <input
+                    type="number"
+                    id="uid"
+                    name="uid"
+                    placeholder="숫자만 입력"
+                    required
+            >
+        </div>
+
+        <!-- 닉네임 입력 -->
+        <div class="form-group">
+            <label for="nickname">닉네임</label>
+            <input
+                    type="text"
+                    id="nickname"
+                    name="nickname"
+                    placeholder="닉네임을 입력하세요"
+                    required
+            >
+        </div>
+
+        <!-- 버튼 그룹 -->
+        <div class="button-group">
+            <button type="submit">등록</button>
+            <button type="button" id="listButton">리스트 보기</button>
+            <button type="button" id="backButton">뒤로가기</button>
+        </div>
+    </form>
+
+    <!-- 결과 메시지 -->
+    <div id="result"></div>
+</div>
+
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script>
+    const addMemberForm = document.getElementById("addMemberForm");
+    const uidInput = document.getElementById("uid");
+    const nicknameInput = document.getElementById("nickname");
+    const resultBox = document.getElementById("result");
+    const submitBtn = addMemberForm.querySelector('button[type="submit"]');
+    const backButton = document.getElementById("backButton");
+    const listButton = document.getElementById("listButton");
+
+    // ✅ 뒤로가기 버튼
+    backButton.addEventListener("click", () => {
+        window.location.href = "index.html";
+    });
+
+    // ✅ 리스트 보기 버튼
+    listButton.addEventListener("click", () => {
+        window.location.href = "memberlist.html";
+    });
+
+    // ✅ URL 파라미터에서 기존 값 가져오기 (수정 화면)
+    function getQueryParams() {
+        const params = {};
+        window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, (str, key, value) => {
+            params[key] = decodeURIComponent(value);
+        });
+        return params;
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+        const params = getQueryParams();
+        if (params.uid) uidInput.value = params.uid;
+        if (params.nickname) nicknameInput.value = params.nickname;
+    });
+
+    // ✅ 결과 메시지 표시
+    function showResult(message, isSuccess) {
+        resultBox.textContent = message;
+        resultBox.className = isSuccess ? "success show" : "error show";
+
+        // 5초 후 자동으로 숨김
+        setTimeout(() => {
+            resultBox.classList.remove("show");
+        }, 5000);
+    }
+
+    // ✅ 폼 제출
+    addMemberForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        // 중복 클릭 방지
+        submitBtn.disabled = true;
+
+        const uid = uidInput.value.trim();
+        const nickname = nicknameInput.value.trim();
+
+        // 기본 유효성 검사
+        if (!uid || !nickname) {
+            showResult("UID와 닉네임을 모두 입력해주세요.", false);
+            submitBtn.disabled = false;
+            return;
+        }
+
+        try {
+            const response = await authFetch("/api/members/addmember", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ uid: uid, nickname: nickname })
+            });
+
+            if (response.status === 201) {
+                const result = await response.json();
+                showResult(`✅ 등록 성공!\nUID: ${result.uid}\n닉네임: ${result.nickname}`, true);
+
+                // 1.5초 후 index.html로 이동
+                setTimeout(() => {
+                    window.location.href = "index.html";
+                }, 1500);
+            } else {
+                const errorMsg = await response.text();
+                showResult(`❌ 등록 실패: ${errorMsg}`, false);
+                submitBtn.disabled = false;
+            }
+        } catch (error) {
+            showResult(`❌ 오류 발생: ${error.message}`, false);
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>

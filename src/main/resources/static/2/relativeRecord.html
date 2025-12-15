@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>유저 기록 비교</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #compareContainer {
+            margin-top: 30px;
+            margin-left: 100px;
+            max-width: 800px;
+        }
+        table {
+          width: auto;
+          border-collapse: collapse;
+          table-layout: auto;
+        }
+        th, td {
+          padding: 8px 16px;
+          border: 1px solid #ccc;
+          white-space: nowrap;
+          text-align: center;
+        }
+        th { background: #f2f2f2; }
+        #compareSearch {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="text"], button { padding: 6px 12px; font-size: 1em; }
+        #backBtn { margin-top: 22px; }
+        #chartsContainer {
+          margin-top: 30px;
+          display: none;
+          justify-content: space-around;
+        }
+        #recordTable {
+          display: none;
+        }
+        #headerContainer {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          margin-left: 200px;
+        }
+
+        #headerContainer button {
+          margin-left: 50px;
+        }
+    </style>
+</head>
+<body>
+<div id="headerContainer">
+    <h1>유저 기록 비교</h1>
+    <button id="backBtn">뒤로가기</button>
+</div>
+<div id="compareContainer">
+    <div id="compareSearch">
+        <label for="userA">내 닉네임:</label>
+        <input id="userA" list="nicknameList" autocomplete="off" placeholder="내 닉네임" />
+        <label for="userB">상대 닉네임:</label>
+        <input id="userB" list="nicknameList" autocomplete="off" placeholder="상대 닉네임" />
+        <button id="searchBtn">검색</button>
+        <datalist id="nicknameList"></datalist>
+    </div>
+    <div id="chartsContainer">
+        <div>
+            <h3>내 기록</h3>
+            <canvas id="user1Chart" width="300" height="300"></canvas>
+        </div>
+        <div>
+            <h3 id="user2Title">상대 기록</h3>
+            <canvas id="user2Chart" width="300" height="300"></canvas>
+        </div>
+    </div>
+    <div id="gameCount" style="margin-bottom:10px; font-weight:bold;"></div>
+    <div id="user1Stats" style="margin-top:10px;font-size:14px;line-height:1.7;"></div>
+
+    <button id="toggleTableBtn" style="margin-top:10px; display:none;">상세 기록 보기 ▼</button>
+    <table id="recordTable" style="border-collapse: collapse; width:100%; margin-top: 20px;">
+        <thead>
+        <tr>
+            <th>id</th>
+            <th>동</th><th>닉네임1</th><th>점수1</th>
+            <th>남</th><th>닉네임2</th><th>점수2</th>
+            <th>서</th><th>닉네임3</th><th>점수3</th>
+            <th>북</th><th>닉네임4</th><th>점수4</th>
+        </tr>
+        </thead>
+        <tbody id="recordBody"></tbody>
+    </table>
+</div>
+
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const nicknameList = document.getElementById('nicknameList');
+    const nicknameMap = new Map();
+
+    async function loadNicknames() {
+      try {
+        const response = await authFetch('/api/members/nicknames');
+        if (response.ok) {
+          const nicknames = await response.json();
+          nicknameList.innerHTML = '';
+          nicknameMap.clear();
+          nicknames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            nicknameList.appendChild(option);
+            nicknameMap.set(name.toLowerCase(), name);
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function assignRanks(players) {
+      const sorted = [...players].sort((a, b) => b.score - a.score);
+      sorted.forEach((p, i) => {
+        p.rank = i + 1;
+      });
+    }
+
+    function calculateWinRates(records, nickname) {
+      const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+      let total = 0;
+      records.forEach(record => {
+        let players;
+        try {
+          players = JSON.parse(record.records);
+        } catch (e) {
+          players = [];
+        }
+        assignRanks(players);
+        const player = players.find(p => p.nickname === nickname);
+        if (player && player.rank != null) {
+          counts[player.rank] = (counts[player.rank] || 0) + 1;
+          total++;
+        }
+      });
+      if (total === 0) return [0, 0, 0, 0];
+      return [
+        (counts[1] / total * 100).toFixed(1),
+        (counts[2] / total * 100).toFixed(1),
+        (counts[3] / total * 100).toFixed(1),
+        (counts[4] / total * 100).toFixed(1),
+      ];
+    }
+
+    function getRankStats(records, nickname) {
+        const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        let total = 0;
+        records.forEach(record => {
+            let players;
+            try {
+                players = typeof record.records === 'string' ? JSON.parse(record.records) : record.records;
+            } catch (e) {
+                players = [];
+            }
+            assignRanks(players);
+            const player = players.find(p => p.nickname === nickname);
+            if (player && player.rank != null) {
+                counts[player.rank] = (counts[player.rank] || 0) + 1;
+                total++;
+            }
+        });
+        if (total === 0) return { counts, percent: [0,0,0,0] };
+        const percent = [
+            (counts[1] / total * 100).toFixed(1),
+            (counts[2] / total * 100).toFixed(1),
+            (counts[3] / total * 100).toFixed(1),
+            (counts[4] / total * 100).toFixed(1),
+        ];
+        return { counts, percent };
+    }
+
+    function renderPieChart(ctx, data) {
+      const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['1위', '2위', '3위', '4위'],
+          datasets: [{
+            data: data,
+            backgroundColor: ['#4caf50', '#2196f3', '#ff9800', '#f44336'],
+            borderColor: '#fff',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.label}: ${ctx.parsed}%`
+              }
+            }
+          }
+        }
+      });
+
+      // 렌더 이후 텍스트 그리기 처리
+      requestAnimationFrame(() => {
+        const {ctx, data, chartArea} = chart;
+
+        ctx.save();
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+
+        const centerX = (chartArea.left + chartArea.right) / 2;
+        const y = chartArea.top - 10;
+
+        data.datasets[0].data.forEach((value, idx) => {
+          const text = `${data.labels[idx]} ${value}%`;
+          ctx.fillText(text, centerX, y - (data.datasets[0].data.length - 1 - idx) * 18);
+        });
+
+        ctx.restore();
+      });
+
+      return chart;
+    }
+    // 차트 위 텍스트 직접 그리기 함수
+    function drawTextOnChart(chart, data) {
+      const ctx = chart.ctx;
+      const chartArea = chart.chartArea;
+
+      ctx.save();
+      ctx.font = 'bold 14px Arial';
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'center';
+
+      const centerX = (chartArea.left + chartArea.right) / 2;
+      const y = chartArea.top - 10;
+
+      data.forEach((value, idx) => {
+        const text = ['1위', '2위', '3위', '4위'][idx] + ' ' + value + '%';
+        ctx.fillText(text, centerX, y - (data.length - 1 - idx) * 18);
+      });
+
+      ctx.restore();
+    }
+
+    let chart1 = null, chart2 = null;
+
+    const toggleBtn = document.getElementById('toggleTableBtn');
+    const recordTable = document.getElementById('recordTable');
+
+    toggleBtn.onclick = () => {
+      if (recordTable.style.display === 'none') {
+        recordTable.style.display = 'table';
+        toggleBtn.textContent = '상세 기록 접기 ▲';
+      } else {
+        recordTable.style.display = 'none';
+        toggleBtn.textContent = '상세 기록 보기 ▼';
+      }
+    };
+
+    document.getElementById('searchBtn').onclick = async () => {
+      let nicknameA = document.getElementById('userA').value.trim();
+      let nicknameB = document.getElementById('userB').value.trim();
+      nicknameA = nicknameMap.get(nicknameA.toLowerCase()) || nicknameA;
+      nicknameB = nicknameMap.get(nicknameB.toLowerCase()) || nicknameB;
+
+      if (!nicknameA || !nicknameB) {
+        alert('닉네임 입력하세요');
+        return;
+      }
+
+      try {
+        const response = await authFetch(`/api/recordset/with-users?userA=${encodeURIComponent(nicknameA)}&userB=${encodeURIComponent(nicknameB)}`);
+        if (!response.ok) throw new Error('데이터 없음');
+        const records = await response.json();
+
+        document.getElementById('gameCount').textContent = `총 ${records.length}국`;
+        document.getElementById('user2Title').textContent = `상대 기록 (${nicknameB})`;
+
+        const user1Stats = getRankStats(records, nicknameA);
+
+        document.getElementById('user1Stats').innerHTML =
+            `1위: ${user1Stats.counts[1]}회 (${user1Stats.percent[0]}%)<br>
+             2위: ${user1Stats.counts[2]}회 (${user1Stats.percent[1]}%)<br>
+             3위: ${user1Stats.counts[3]}회 (${user1Stats.percent[2]}%)<br>
+             4위: ${user1Stats.counts[4]}회 (${user1Stats.percent[3]}%)`;
+
+        const tbody = document.getElementById('recordBody');
+        tbody.innerHTML = '';
+
+        document.getElementById('chartsContainer').style.display = 'flex';
+        toggleBtn.style.display = 'inline-block';
+        recordTable.style.display = 'none';
+        toggleBtn.textContent = '상세 기록 보기 ▼';
+
+        records.forEach(record => {
+          let players;
+          try {
+            players = JSON.parse(record.records);
+          } catch (e) {
+            players = [];
+          }
+
+          function getPlayer(dir) {
+            return players.find(p => p.direction === dir) || {};
+          }
+
+          const east = getPlayer('동');
+          const south = getPlayer('남');
+          const west = getPlayer('서');
+          const north = getPlayer('북');
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${record.id}</td>
+            <td>동</td>
+            <td>${east.nickname || '-'}</td>
+            <td>${east.score ?? '-'}</td>
+            <td>남</td>
+            <td>${south.nickname || '-'}</td>
+            <td>${south.score ?? '-'}</td>
+            <td>서</td>
+            <td>${west.nickname || '-'}</td>
+            <td>${west.score ?? '-'}</td>
+            <td>북</td>
+            <td>${north.nickname || '-'}</td>
+            <td>${north.score ?? '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        if(chart1 && typeof chart1.destroy === 'function') chart1.destroy();
+        if(chart2 && typeof chart2.destroy === 'function') chart2.destroy();
+
+        chart1 = renderPieChart(document.getElementById('user1Chart').getContext('2d'), calculateWinRates(records, nicknameA));
+        chart2 = renderPieChart(document.getElementById('user2Chart').getContext('2d'), calculateWinRates(records, nicknameB));
+
+        drawTextOnChart(chart1, calculateWinRates(records, nicknameA));
+        drawTextOnChart(chart2, calculateWinRates(records, nicknameB));
+
+      } catch (e) {
+        alert(e.message);
+      }
+    };
+
+    document.getElementById('backBtn').onclick = () => {
+      window.location.href = 'index.html';
+    };
+
+    window.onload = loadNicknames;
+</script>
+</body>
+</html>

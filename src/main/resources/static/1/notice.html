@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>공지사항 게시판</title>
+    <style>
+        body { background: #f9f9fb; font-family: 'Pretendard', 'Malgun Gothic', Arial, sans-serif; margin: 0; }
+        .notice-board { max-width: 730px; margin: 34px auto; background: #fff; border-radius: 9px; border: 1px solid #e1e6ee; padding: 22px; }
+        .notice-board h2 { font-weight: 700; font-size: 1.2em; margin-bottom: 18px; color: #353e4d; }
+        .board-btns { text-align: right; margin-bottom: 14px;}
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        th, td { border: 1px solid #eee; padding: 9px; text-align: center; }
+        th { background: #f2f2f2; }
+        td.title { text-align: left; cursor: pointer; }
+        .write-form { background: #f7f8fc; padding: 12px; margin-bottom: 16px; border-radius: 7px; }
+        .write-form input, .write-form textarea { padding: 6px; font-size: 1em; width: 99%; margin-bottom: 8px; }
+        .checkbox-group { margin-bottom: 8px; }
+        .checkbox-group input { margin-right: 8px; }
+        .notice-detail { border: 1px solid #eee; background: #fcfdff; padding: 14px 16px; border-radius: 7px; margin-bottom: 18px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="notice-board">
+    <h2>공지사항 게시판</h2>
+    <div class="board-btns">
+        <button onclick="showWriteForm()" style="padding:6px 16px; border-radius:5px;">글쓰기</button>
+    </div>
+    <form id="writeForm" class="write-form hidden" onsubmit="submitNotice(event)">
+        <input type="text" id="noticeTitle" placeholder="제목" required /><br />
+        <textarea id="noticeContent" rows="4" placeholder="내용" required></textarea><br />
+
+        <!-- ✅ 메인 노출 체크박스 -->
+        <div class="checkbox-group">
+            <input type="checkbox" id="isMainExposed" />
+            <label for="isMainExposed">메인 화면에 노출</label>
+        </div>
+
+        <button type="submit" style="padding:6px 18px;">등록</button>
+        <button type="button" onclick="hideWriteForm()" style="margin-left:5px;padding:6px 18px;">취소</button>
+    </form>
+    <table id="noticeTable">
+        <thead>
+        <tr>
+            <th style="width:70px;">번호</th>
+            <th>제목</th>
+            <th style="width:100px;">날짜</th>
+            <th style="width:80px;">메인노출</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 게시글이 여기에 동적으로 추가됨 -->
+        </tbody>
+    </table>
+    <div id="noticeDetail" class="notice-detail hidden">
+        <!-- 게시글 상세내용이 여기에 표시됨 -->
+    </div>
+</div>
+
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script>
+    let editingId = null;
+
+    // 전체 공지사항 목록 조회
+    async function renderNotices() {
+      const resp = await authFetch('/api/notices');
+      const notices = await resp.json();
+
+      const tbody = document.querySelector('#noticeTable tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(notices) || notices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">게시글이 없습니다.</td></tr>';
+        return;
+      }
+      for (let notice of notices) {
+        const tr = document.createElement('tr');
+        // ✅ 메인 노출 여부 표시
+        const mainExposed = notice.isMainExposed ? '✅' : '❌';
+        tr.innerHTML =
+          `<td>${notice.id}</td>
+           <td class="title" onclick="showDetail(${notice.id})">${notice.title}</td>
+           <td>${notice.date}</td>
+           <td>${mainExposed}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // 상세 보기
+    async function showDetail(id) {
+      const resp = await authFetch('/api/notices/' + id);
+      if (!resp.ok) return;
+      const notice = await resp.json();
+
+      const detailDiv = document.getElementById('noticeDetail');
+      detailDiv.innerHTML =
+        `<h3 style="margin-bottom:7px;color:#223;">${notice.title}</h3>
+         <div style="color:#888;margin-bottom:7px;">${notice.date}</div>
+         <div style="color:#666;margin-bottom:10px;">
+            메인 노출: <strong>${notice.isMainExposed ? '예' : '아니오'}</strong>
+         </div>
+         <div style="margin-bottom:10px;">${notice.content.replace(/\n/g, '<br>')}</div>
+         <div style="text-align: right;">
+            <button onclick="editNotice(${notice.id})" style="margin-right:8px; padding:5px 14px;">수정</button>
+            <button onclick="deleteNotice(${notice.id})" style="margin-right:8px; padding:5px 14px;">삭제</button>
+            <button onclick="hideDetail()" style="padding:5px 14px;">닫기</button>
+         </div>`;
+      detailDiv.classList.remove('hidden');
+      window.scrollTo({top: detailDiv.offsetTop-40, behavior:'smooth'});
+    }
+
+    function hideDetail() {
+      document.getElementById('noticeDetail').classList.add('hidden');
+    }
+
+    // 수정 버튼 클릭 시
+    async function editNotice(id) {
+      const resp = await authFetch('/api/notices/' + id);
+      if (!resp.ok) {
+        alert('공지글을 불러오는데 실패했습니다.');
+        return;
+      }
+      const notice = await resp.json();
+
+      editingId = id;
+      document.getElementById('noticeTitle').value = notice.title;
+      document.getElementById('noticeContent').value = notice.content;
+      document.getElementById('isMainExposed').checked = notice.isMainExposed || false;
+
+      hideDetail();
+      showWriteForm();
+    }
+
+    // ✅ 삭제 함수
+    async function deleteNotice(id) {
+      if (!confirm('정말 삭제하시겠습니까?')) return;
+
+      const resp = await authFetch('/api/notices/' + id, { method: 'DELETE' });
+      if (resp.ok) {
+        alert('삭제되었습니다.');
+        renderNotices();
+        hideDetail();
+      } else {
+        alert('삭제에 실패했습니다.');
+      }
+    }
+
+    // 글쓰기 폼 보이기
+    function showWriteForm() {
+      document.getElementById('writeForm').classList.remove('hidden');
+    }
+
+    // 글쓰기 폼 숨기기
+    function hideWriteForm() {
+      document.getElementById('writeForm').classList.add('hidden');
+      document.getElementById('writeForm').reset();
+      editingId = null;
+    }
+
+    // 글쓰기/수정 제출
+    async function submitNotice(e) {
+      e.preventDefault();
+      const title = document.getElementById('noticeTitle').value.trim();
+      const content = document.getElementById('noticeContent').value.trim();
+      const isMainExposed = document.getElementById('isMainExposed').checked;
+
+      if (!title || !content) return;
+
+      if (editingId) {
+        // 수정: PUT 요청
+        await authFetch('/api/notices/' + editingId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content,
+            date: new Date().toISOString().slice(0, 10),
+            isMainExposed
+          })
+        });
+        editingId = null;
+      } else {
+        // 새글 등록: POST 요청
+        await authFetch('/api/notices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content,
+            date: new Date().toISOString().slice(0, 10),
+            isMainExposed
+          })
+        });
+      }
+
+      renderNotices();
+      hideWriteForm();
+    }
+
+    // 초기 렌더링
+    renderNotices();
+</script>
+</body>
+</html>

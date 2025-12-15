@@ -5,11 +5,29 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>벽뿌방 기록시스템</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-    <script defer="defer" src="js/main.4de3562e.js"></script>
-    <link href="css/main.98780777.css" rel="stylesheet"></head>
+    <script defer="defer" src="../js/main.67327acc.js"></script>
+    <link href="../css/main.7eaf1c91.css" rel="stylesheet"></head>
 <body>
 <noscript>이 사이트는 자바스크립트를 지원하지 않는 브라우저에서 정상 작동하지 않을 수 있습니다.</noscript>
 <div id="root"></div>
-<script src="js/common.js"></script>
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script src="../js/hidden.js"></script>
+
+<script>
+    // 페이지 로드 완료 후 실행
+    window.addEventListener('DOMContentLoaded', function() {
+        console.log('=== 그룹 ID 테스트 시작 ===');
+
+        // getGroupId 함수가 이미 group.js에 정의되어 있다고 가정
+        if (typeof getGroupId === 'function') {
+            const groupId = getGroupId();
+            console.log('그룹 ID 결과:', groupId);
+        } else {
+            console.error('getGroupId 함수를 찾을 수 없습니다.');
+        }
+    });
+</script>
+
 </body>
 </html>

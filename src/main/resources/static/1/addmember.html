@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>멤버 등록</title>
+</head>
+<body>
+<h1>멤버 등록</h1>
+
+<form id="addMemberForm">
+    <label for="uid">UID:</label>
+    <input type="number" id="uid" name="uid" required>
+    <br><br>
+
+    <label for="nickname">닉네임:</label>
+    <input type="text" id="nickname" name="nickname" required>
+    <br><br>
+
+    <button type="submit">등록</button>
+    <button type="button" id="backButton">뒤로가기</button>
+    <button type="button" id="listButton">멤버 리스트 보기</button>
+</form>
+
+<p id="result"></p>
+
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script>
+    document.getElementById('backButton').addEventListener('click', function() {
+        window.location.href = 'index.html';
+    });
+
+    document.getElementById('listButton').addEventListener('click', function() {
+        window.location.href = 'memberlist.html';
+    });
+
+    function getQueryParams() {
+        const params = {};
+        window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str,key,value) {
+            params[key] = decodeURIComponent(value);
+        });
+        return params;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = getQueryParams();
+        if(params.uid) document.getElementById('uid').value = params.uid;
+        if(params.nickname) document.getElementById('nickname').value = params.nickname;
+    });
+
+    document.getElementById("addMemberForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+
+        const uid = document.getElementById("uid").value;
+        const nickname = document.getElementById("nickname").value;
+
+        const response = await authFetch("/api/members/addmember", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ uid: uid, nickname: nickname })
+        });
+
+        const resultBox = document.getElementById("result");
+
+        if (response.status === 201) {
+            const result = await response.json();
+            alert(`등록 성공 ✅ UID=${result.uid}, 닉네임=${result.nickname}`);
+            window.location.href = "index.html";
+        } else {
+            const errorMsg = await response.text();
+            resultBox.style.color = "red";
+            resultBox.textContent = `등록 실패 ❌ : ${errorMsg}`;
+            submitButton.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
