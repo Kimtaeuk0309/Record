@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>일별 기록 조회</title>
+    <style>
+        :root {
+            --color-white: rgba(255, 255, 255, 1);
+            --color-cream-50: rgba(252, 252, 249, 1);
+            --color-cream-100: rgba(255, 255, 253, 1);
+            --color-gray-200: rgba(245, 245, 245, 1);
+            --color-gray-300: rgba(167, 169, 169, 1);
+            --color-gray-400: rgba(119, 124, 124, 1);
+            --color-slate-500: rgba(98, 108, 113, 1);
+            --color-slate-900: rgba(19, 52, 59, 1);
+            --color-brown-600: rgba(94, 82, 64, 1);
+            --color-teal-500: rgba(33, 128, 141, 1);
+            --color-teal-600: rgba(29, 116, 128, 1);
+            --color-teal-700: rgba(26, 104, 115, 1);
+
+            --color-background: var(--color-cream-50);
+            --color-surface: var(--color-cream-100);
+            --color-text: var(--color-slate-900);
+            --color-text-secondary: var(--color-slate-500);
+            --color-primary: var(--color-teal-500);
+            --color-primary-hover: var(--color-teal-600);
+            --color-primary-active: var(--color-teal-700);
+            --color-secondary: rgba(94, 82, 64, 0.12);
+            --color-secondary-hover: rgba(94, 82, 64, 0.2);
+            --color-border: rgba(94, 82, 64, 0.2);
+            --color-card-border: rgba(94, 82, 64, 0.12);
+            --color-card-border-inner: rgba(94, 82, 64, 0.12);
+            --color-btn-primary-text: var(--color-cream-50);
+
+            --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-size-sm: 12px;
+            --font-size-base: 14px;
+            --font-size-md: 14px;
+            --font-size-lg: 16px;
+            --font-size-xl: 18px;
+            --font-size-2xl: 20px;
+            --font-size-3xl: 24px;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 550;
+            --line-height-normal: 1.5;
+            --line-height-tight: 1.2;
+            --letter-spacing-tight: -0.01em;
+
+            --space-4: 4px;
+            --space-6: 6px;
+            --space-8: 8px;
+            --space-10: 10px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-20: 20px;
+            --space-24: 24px;
+            --space-32: 32px;
+
+            --radius-base: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+
+            --duration-fast: 150ms;
+            --duration-normal: 250ms;
+            --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: var(--font-size-base);
+            font-family: var(--font-family-base);
+            line-height: var(--line-height-normal);
+            color: var(--color-text);
+            background-color: var(--color-background);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-semibold);
+            margin: 0 0 var(--space-20) 0;
+            text-align: center;
+            letter-spacing: var(--letter-spacing-tight);
+            line-height: var(--line-height-tight);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: var(--space-16);
+        }
+
+        .header-section {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 0 var(--space-16);
+        }
+
+        .button-group {
+            display: flex;
+            gap: var(--space-12);
+            margin-bottom: var(--space-20);
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: var(--space-12) var(--space-16);
+            font-size: var(--font-size-base);
+            font-family: var(--font-family-base);
+            font-weight: var(--font-weight-medium);
+            line-height: var(--line-height-normal);
+            cursor: pointer;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            background-color: var(--color-secondary);
+            color: var(--color-text);
+            transition: background-color var(--duration-normal) var(--ease-standard);
+            min-height: 44px;
+        }
+
+        button:hover {
+            background-color: var(--color-secondary-hover);
+        }
+
+        button:active {
+            background-color: rgba(94, 82, 64, 0.25);
+        }
+
+        button:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        #backBtn {
+            flex: 0 1 auto;
+        }
+
+        .filter-container {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 0 var(--space-16);
+            display: flex;
+            gap: var(--space-12);
+            align-items: center;
+            margin-bottom: var(--space-20);
+            flex-wrap: wrap;
+        }
+
+        .filter-container label {
+            font-weight: var(--font-weight-medium);
+            font-size: var(--font-size-base);
+            white-space: nowrap;
+        }
+
+        select {
+            padding: var(--space-10) var(--space-12);
+            font-size: var(--font-size-base);
+            font-family: var(--font-family-base);
+            color: var(--color-text);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            cursor: pointer;
+            transition: border-color var(--duration-fast) var(--ease-standard);
+            min-height: 44px;
+        }
+
+        select:focus {
+            border-color: var(--color-primary);
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        .table-wrapper {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 0 var(--space-16);
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 600px;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-base);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        thead {
+            background-color: var(--color-secondary);
+        }
+
+        th {
+            border: 1px solid var(--color-card-border-inner);
+            padding: var(--space-12) var(--space-8);
+            text-align: center;
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-sm);
+            color: var(--color-text);
+            line-height: var(--line-height-normal);
+            white-space: nowrap;
+        }
+
+        td {
+            border: 1px solid var(--color-card-border-inner);
+            padding: var(--space-12) var(--space-8);
+            text-align: center;
+            font-size: var(--font-size-sm);
+            color: var(--color-text);
+            line-height: var(--line-height-normal);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: rgba(94, 82, 64, 0.03);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(94, 82, 64, 0.1);
+            transition: background-color var(--duration-fast) var(--ease-standard);
+        }
+
+        a.detail-link {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            transition: color var(--duration-fast) var(--ease-standard);
+            cursor: pointer;
+        }
+
+        a.detail-link:hover {
+            color: var(--color-primary-hover);
+            text-decoration: underline;
+        }
+
+        a.detail-link:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: var(--space-32);
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-base);
+        }
+
+        /* 스크롤바 스타일 */
+        .table-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: var(--color-secondary);
+            border-radius: var(--radius-base);
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: var(--radius-base);
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-secondary);
+        }
+
+        /* 모바일 반응형 (≤480px) */
+        @media (max-width: 480px) {
+            .container {
+                padding: var(--space-12);
+            }
+
+            h1 {
+                font-size: var(--font-size-2xl);
+                margin-bottom: var(--space-16);
+            }
+
+            .header-section {
+                padding: 0 var(--space-12);
+            }
+
+            .button-group {
+                gap: var(--space-8);
+                margin-bottom: var(--space-16);
+            }
+
+            button {
+                padding: var(--space-10) var(--space-12);
+                font-size: var(--font-size-sm);
+                flex: 1;
+                min-width: 100px;
+            }
+
+            .filter-container {
+                padding: 0 var(--space-12);
+                gap: var(--space-8);
+                margin-bottom: var(--space-16);
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-container label {
+                display: block;
+                margin-bottom: var(--space-4);
+            }
+
+            select {
+                width: 100%;
+            }
+
+            .table-wrapper {
+                padding: 0 var(--space-12);
+                margin-bottom: var(--space-16);
+            }
+
+            table {
+                min-width: 100%;
+                font-size: var(--font-size-xs);
+            }
+
+            th, td {
+                padding: var(--space-8) var(--space-4);
+                font-size: 11px;
+            }
+
+            .empty-message {
+                padding: var(--space-24);
+                font-size: var(--font-size-sm);
+            }
+        }
+
+        /* 태블릿 반응형 (481px ~ 768px) */
+        @media (min-width: 481px) and (max-width: 768px) {
+            .container {
+                padding: var(--space-16);
+            }
+
+            h1 {
+                font-size: var(--font-size-2xl);
+                margin-bottom: var(--space-16);
+            }
+
+            .header-section {
+                padding: 0 var(--space-16);
+            }
+
+            .button-group {
+                gap: var(--space-10);
+                margin-bottom: var(--space-16);
+            }
+
+            button {
+                padding: var(--space-10) var(--space-14);
+                font-size: var(--font-size-sm);
+                flex: 0 1 auto;
+            }
+
+            .filter-container {
+                padding: 0 var(--space-16);
+                gap: var(--space-10);
+                margin-bottom: var(--space-16);
+                flex-wrap: wrap;
+            }
+
+            select {
+                min-width: 200px;
+            }
+
+            .table-wrapper {
+                padding: 0 var(--space-16);
+                margin-bottom: var(--space-16);
+            }
+
+            th, td {
+                padding: var(--space-10) var(--space-6);
+                font-size: var(--font-size-sm);
+            }
+        }
+
+        /* 데스크톱 반응형 (≥769px) */
+        @media (min-width: 769px) {
+            .container {
+                padding: var(--space-16);
+            }
+
+            .header-section {
+                padding: 0;
+            }
+
+            .button-group {
+                margin-bottom: var(--space-20);
+            }
+
+            button {
+                flex: 0 1 auto;
+            }
+
+            .filter-container {
+                padding: 0;
+                margin-bottom: var(--space-20);
+            }
+
+            .table-wrapper {
+                padding: 0;
+                margin-bottom: var(--space-32);
+            }
+
+            th, td {
+                padding: var(--space-12) var(--space-8);
+                font-size: var(--font-size-sm);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-section">
+        <h1>일별 기록 조회</h1>
+        <div class="button-group">
+            <button id="backBtn" type="button">뒤로가기</button>
+        </div>
+    </div>
+
+    <div class="filter-container">
+        <label for="dateSelect">날짜:</label>
+        <select id="dateSelect">
+            <option value="">-- 날짜 선택 --</option>
+        </select>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="dailyStatsTable">
+            <thead>
+            <tr>
+                <th>순위</th>
+                <th>닉네임</th>
+                <th>총승점</th>
+                <th>평균승점</th>
+                <th>평균순위</th>
+                <th>1위횟수<br/>(1위율)</th>
+                <th>2위횟수<br/>(2위율)</th>
+                <th>3위횟수<br/>(3위율)</th>
+                <th>4위횟수<br/>(4위율)</th>
+                <th>총국수</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ✅ 기본 fetch 함수 (authFetch 대체)
+    async function authFetch(url, options = {}) {
+        const response = await fetch(url, options);
+        return response;
+    }
+
+    // ✅ 모든 기록이 있는 날짜를 가져오기
+    async function loadAvailableDates() {
+        try {
+            const response = await authFetch('/api/statistics/available-dates');
+            if (!response.ok) throw new Error('날짜 목록 불러오기 실패: ' + response.status);
+            const dates = await response.json();
+
+            populateDateSelect(dates);
+        } catch (e) {
+            console.error('Error loading dates:', e.message);
+            alert(e.message);
+        }
+    }
+
+    // ✅ 셀렉트박스에 날짜 채우기
+    function populateDateSelect(dates) {
+        const select = document.getElementById('dateSelect');
+
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+
+        dates.sort().reverse();
+
+        dates.forEach((dateStr) => {
+            const option = document.createElement('option');
+            option.value = dateStr;
+            option.textContent = dateStr + ' 기록';
+            select.appendChild(option);
+        });
+    }
+
+    function calcAverageRank(stat) {
+        if (!stat || !stat.totalCount) return '0.00';
+        const avgRank =
+            (stat.firstPlaceCount * 1 +
+             stat.secondPlaceCount * 2 +
+             stat.thirdPlaceCount * 3 +
+             stat.fourthPlaceCount * 4)
+             / stat.totalCount;
+        return avgRank.toFixed(2);
+    }
+
+    function renderTable(stats) {
+        const tbody = document.querySelector('#dailyStatsTable tbody');
+        tbody.innerHTML = '';
+
+        if (stats.length === 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td colSpan="10" class="empty-message">해당 날짜의 기록이 없습니다.</td>';
+            tbody.appendChild(tr);
+            return;
+        }
+
+        stats.forEach((stat, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>
+                    <a href="detail.html?nickname=${encodeURIComponent(stat.nickname)}"
+                       class="detail-link"
+                       title="${stat.nickname}의 상세 기록 보기">
+                        ${stat.nickname}
+                    </a>
+                </td>
+                <td>${stat.totalPoints.toFixed(1)}</td>
+                <td>${stat.avgPoints.toFixed(1)}</td>
+                <td>${calcAverageRank(stat)}</td>
+                <td>${stat.firstPlaceCount}<br/>(${(stat.firstPlaceRate * 100).toFixed(1)}%)</td>
+                <td>${stat.secondPlaceCount}<br/>(${(stat.secondPlaceRate * 100).toFixed(1)}%)</td>
+                <td>${stat.thirdPlaceCount}<br/>(${(stat.thirdPlaceRate * 100).toFixed(1)}%)</td>
+                <td>${stat.fourthPlaceCount}<br/>(${(stat.fourthPlaceRate * 100).toFixed(1)}%)</td>
+                <td>${stat.totalCount}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ✅ 날짜 기준으로 데이터 로드
+    async function loadData(dateStr) {
+        if (!dateStr) {
+            return;
+        }
+
+        const [year, month, day] = dateStr.split('-');
+
+        try {
+            const url = `/api/statistics/byDay?year=${year}&month=${month}&day=${day}`;
+            const response = await authFetch(url);
+            if (!response.ok) throw new Error('데이터 불러오기 실패: ' + response.status);
+            const data = await response.json();
+
+            data.sort((a, b) => b.totalPoints - a.totalPoints);
+
+            renderTable(data);
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
+    window.onload = () => {
+        loadAvailableDates();
+
+        // 세션 저장 제거 - 항상 빈 상태로 시작
+        // 사용자가 명시적으로 날짜를 선택해야만 데이터 표시
+
+        document.getElementById('dateSelect').addEventListener('change', () => {
+            const dateStr = document.getElementById('dateSelect').value;
+            if (dateStr) {
+                // 세션에 저장하지 않음
+                loadData(dateStr);
+            }
+        });
+
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    };
+</script>
+
+</body>
+</html>

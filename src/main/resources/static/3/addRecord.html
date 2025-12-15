@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기록입력</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        #playerForm {
+            max-width: 950px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fafafa;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+
+        .player-row-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .player-direction {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .player-direction.south { background-color: #28a745; }
+        .player-direction.west { background-color: #ffc107; color: #333; }
+        .player-direction.north { background-color: #dc3545; }
+
+        .player-inputs {
+            display: grid;
+            gap: 10px;
+        }
+
+        @media (min-width: 769px) {
+            .player-row {
+                flex-direction: row;
+                align-items: center;
+            }
+            .player-row-header {
+                margin-bottom: 0;
+            }
+            .player-inputs {
+                display: flex;
+                gap: 10px;
+                flex: 1;
+            }
+        }
+
+        input[type="text"],
+        input[type="hidden"] {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        @media (max-width: 768px) {
+            input[type="text"] {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .nickname-input { flex: 2; min-width: 150px; }
+            .score-input { flex: 1; min-width: 80px; }
+            .yaku-input { flex: 1.5; min-width: 120px; }
+        }
+
+        .input-label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ✅ 커스텀 자동완성 드롭다운 */
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95em;
+        }
+
+        .autocomplete-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item.highlight {
+            background-color: #e7f3ff;
+        }
+
+        .summary-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .summary-section h3 {
+            font-size: 1em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        #sumMessage {
+            font-weight: bold;
+            font-size: 1.8em;
+            margin-bottom: 8px;
+            color: red;
+        }
+
+        #sumMessage.valid {
+            color: green;
+        }
+
+        #validationMessage {
+            font-size: 0.95em;
+            color: red;
+        }
+
+        #validationMessage.valid {
+            color: green;
+        }
+
+        #submitBtn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
+            font-size: 1.05em;
+            font-weight: 600;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #submitBtn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        #submitBtn:active:not(:disabled) {
+            background-color: #004085;
+        }
+
+        #submitBtn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            h1 {
+                font-size: 1.4em;
+                margin-bottom: 15px;
+            }
+            #playerForm {
+                padding: 15px;
+            }
+            .player-row {
+                padding: 12px;
+                margin-bottom: 15px;
+                border-left-width: 3px;
+            }
+            .player-direction {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1em;
+            }
+            input[type="text"] {
+                font-size: 16px;
+                padding: 12px;
+            }
+            .summary-section {
+                padding: 15px;
+                margin-top: 20px;
+            }
+            #submitBtn {
+                padding: 16px;
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>점수 등록</h1>
+<form id="playerForm">
+
+    <!-- Player 1 (동) -->
+    <div class="player-row">
+        <div class="player-row-header">
+            <div class="player-direction">동</div>
+        </div>
+        <input type="hidden" name="records[0].direction" value="동">
+        <div class="player-inputs">
+            <div class="input-group">
+                <label class="input-label">닉네임</label>
+                <div class="autocomplete-container">
+                    <input
+                            type="text"
+                            name="records[0].nickname"
+                            class="nickname-input autocomplete-input"
+                            data-index="0"
+                            placeholder="닉네임 입력"
+                            autocomplete="off"
+                            required
+                    >
+                    <div class="autocomplete-dropdown" id="dropdown-0"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">점수</label>
+                <input
+                        type="text"
+                        inputmode="numeric"
+                        pattern="-?[0-9]*"
+                        class="score score-input"
+                        name="records[0].score"
+                        placeholder="점수"
+                        required
+                >
+            </div>
+            <div class="input-group">
+                <label class="input-label">역만</label>
+                <input
+                        type="text"
+                        class="yaku yaku-input"
+                        name="records[0].yakuList"
+                        placeholder="역만입력"
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Player 2 (남) -->
+    <div class="player-row">
+        <div class="player-row-header">
+            <div class="player-direction south">남</div>
+        </div>
+        <input type="hidden" name="records[1].direction" value="남">
+        <div class="player-inputs">
+            <div class="input-group">
+                <label class="input-label">닉네임</label>
+                <div class="autocomplete-container">
+                    <input
+                            type="text"
+                            name="records[1].nickname"
+                            class="nickname-input autocomplete-input"
+                            data-index="1"
+                            placeholder="닉네임 입력"
+                            autocomplete="off"
+                            required
+                    >
+                    <div class="autocomplete-dropdown" id="dropdown-1"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">점수</label>
+                <input
+                        type="text"
+                        inputmode="numeric"
+                        pattern="-?[0-9]*"
+                        class="score score-input"
+                        name="records[1].score"
+                        placeholder="점수"
+                        required
+                >
+            </div>
+            <div class="input-group">
+                <label class="input-label">역만</label>
+                <input
+                        type="text"
+                        class="yaku yaku-input"
+                        name="records[1].yakuList"
+                        placeholder="역만입력"
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Player 3 (서) -->
+    <div class="player-row">
+        <div class="player-row-header">
+            <div class="player-direction west">서</div>
+        </div>
+        <input type="hidden" name="records[2].direction" value="서">
+        <div class="player-inputs">
+            <div class="input-group">
+                <label class="input-label">닉네임</label>
+                <div class="autocomplete-container">
+                    <input
+                            type="text"
+                            name="records[2].nickname"
+                            class="nickname-input autocomplete-input"
+                            data-index="2"
+                            placeholder="닉네임 입력"
+                            autocomplete="off"
+                            required
+                    >
+                    <div class="autocomplete-dropdown" id="dropdown-2"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">점수</label>
+                <input
+                        type="text"
+                        inputmode="numeric"
+                        pattern="-?[0-9]*"
+                        class="score score-input"
+                        name="records[2].score"
+                        placeholder="점수"
+                        required
+                >
+            </div>
+            <div class="input-group">
+                <label class="input-label">역만</label>
+                <input
+                        type="text"
+                        class="yaku yaku-input"
+                        name="records[2].yakuList"
+                        placeholder="역만입력"
+                >
+            </div>
+        </div>
+    </div>
+
+    <!-- Player 4 (북) -->
+    <div class="player-row">
+        <div class="player-row-header">
+            <div class="player-direction north">북</div>
+        </div>
+        <input type="hidden" name="records[3].direction" value="북">
+        <div class="player-inputs">
+            <div class="input-group">
+                <label class="input-label">닉네임</label>
+                <div class="autocomplete-container">
+                    <input
+                            type="text"
+                            name="records[3].nickname"
+                            class="nickname-input autocomplete-input"
+                            data-index="3"
+                            placeholder="닉네임 입력"
+                            autocomplete="off"
+                            required
+                    >
+                    <div class="autocomplete-dropdown" id="dropdown-3"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">점수</label>
+                <input
+                        type="text"
+                        inputmode="numeric"
+                        pattern="-?[0-9]*"
+                        class="score score-input"
+                        name="records[3].score"
+                        placeholder="점수"
+                        required
+                >
+            </div>
+            <div class="input-group">
+                <label class="input-label">역만</label>
+                <input
+                        type="text"
+                        class="yaku yaku-input"
+                        name="records[3].yakuList"
+                        placeholder="역만입력"
+                >
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="timestampInput" name="timestamp" />
+
+    <div class="summary-section">
+        <h3>점수 합계</h3>
+        <div id="sumMessage">0</div>
+        <div id="validationMessage">점수의 총합은 100,000이 되어야 합니다.</div>
+    </div>
+
+    <button id="submitBtn" type="button" disabled>등록</button>
+</form>
+
+<script src="../js/common.js"></script>
+<script src="../js/group.js"></script>
+<script>
+    const scoreInputs = document.querySelectorAll(".score");
+    const sumMessage = document.getElementById("sumMessage");
+    const validationMessage = document.getElementById("validationMessage");
+    const submitBtn = document.getElementById("submitBtn");
+    const playerForm = document.getElementById("playerForm");
+    const timestampInput = document.getElementById("timestampInput");
+
+    let recordSetId = null;
+    let nicknameMap = new Map();
+    let nicknameList = [];
+
+    // ✅ 자동완성 초기화
+    function initAutocomplete() {
+        const autocompleteInputs = document.querySelectorAll('.autocomplete-input');
+
+        autocompleteInputs.forEach(input => {
+            const index = input.dataset.index;
+            const dropdown = document.getElementById(`dropdown-${index}`);
+
+            // 포커스 시 전체 목록 표시
+            input.addEventListener('focus', () => {
+                showDropdown(input, dropdown, '');
+            });
+
+            // 입력 시 필터링
+            input.addEventListener('input', (e) => {
+                showDropdown(input, dropdown, e.target.value);
+            });
+
+            // 외부 클릭 시 닫기
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        });
+    }
+
+    // ✅ 드롭다운 표시
+    function showDropdown(input, dropdown, query) {
+        const filtered = nicknameList.filter(name =>
+            name.toLowerCase().includes(query.toLowerCase())
+        );
+
+        dropdown.innerHTML = '';
+
+        if (filtered.length === 0) {
+            dropdown.innerHTML = '<div class="autocomplete-item">일치하는 닉네임이 없습니다</div>';
+        } else {
+            filtered.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = name;
+                item.addEventListener('click', () => {
+                    input.value = name;
+                    dropdown.classList.remove('show');
+                });
+                dropdown.appendChild(item);
+            });
+        }
+
+        dropdown.classList.add('show');
+    }
+
+    async function loadNicknames() {
+        try {
+            const response = await authFetch('/api/members/nicknames');
+            if (response.ok) {
+                const nicknames = await response.json();
+                nicknameList = nicknames;
+                nicknameMap.clear();
+                nicknames.forEach(name => {
+                    nicknameMap.set(name.toLowerCase(), name);
+                });
+                initAutocomplete();
+            } else {
+                console.error('닉네임 목록 불러오기 실패:', response.status);
+            }
+        } catch (err) {
+            console.error('닉네임 목록 불러오기 에러:', err);
+        }
+    }
+
+    function getNormalizedNickname(inputNickname) {
+        const lowerInput = inputNickname.trim().toLowerCase();
+        return nicknameMap.get(lowerInput) || null;
+    }
+
+    function validateSum() {
+        let sum = 0;
+        scoreInputs.forEach(input => {
+            sum += Number(input.value) || 0;
+        });
+        sumMessage.textContent = sum.toLocaleString();
+        if (sum === 100000) {
+            sumMessage.classList.add("valid");
+            validationMessage.classList.add("valid");
+            validationMessage.textContent = "✓ 등록 가능합니다.";
+            submitBtn.disabled = false;
+        } else {
+            sumMessage.classList.remove("valid");
+            validationMessage.classList.remove("valid");
+            validationMessage.textContent = `점수의 총합은 100,000이 되어야 합니다. (현재: ${sum.toLocaleString()})`;
+            submitBtn.disabled = true;
+        }
+    }
+
+    function gatherFormData() {
+        const records = [];
+        for(let i = 0; i < 4; i++) {
+            const nicknameInput = playerForm.querySelector(`input[name="records[${i}].nickname"]`);
+            const rawNickname = nicknameInput.value.trim();
+            const normalizedNickname = getNormalizedNickname(rawNickname);
+            if (!normalizedNickname) {
+                alert(`입력한 닉네임 "${rawNickname}"은(는) 존재하지 않습니다.`);
+                nicknameInput.focus();
+                throw new Error("유효하지 않은 닉네임");
+            }
+            const scoreStr = playerForm.querySelector(`input[name="records[${i}].score"]`).value.trim();
+            const direction = playerForm.querySelector(`input[name="records[${i}].direction"]`).value;
+            const yakuStr = playerForm.querySelector(`input[name="records[${i}].yakuList"]`).value.trim();
+            const score = Number(scoreStr);
+            let yakuList = yakuStr ? yakuStr.split(',').map(y => y.trim()).filter(y => y.length > 0) : [];
+            if (normalizedNickname && !isNaN(score)) {
+                records.push({ nickname: normalizedNickname, score, direction, yakuList });
+            }
+        }
+        return { records, timestamp: timestampInput.value };
+    }
+
+    function getCurrentTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hour}:${min}`;
+    }
+
+    async function submitForm() {
+        if (submitBtn.disabled) {
+            return;
+        }
+        submitBtn.disabled = true;
+
+        timestampInput.value = getCurrentTimestamp();
+
+        let data;
+        try {
+            data = gatherFormData();
+        } catch(e) {
+            submitBtn.disabled = false;
+            return;
+        }
+
+        try {
+            let response;
+            if(recordSetId) {
+                response = await authFetch('/api/recordset/' + recordSetId + '?pathNumber=2', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            } else {
+                response = await authFetch('/api/recordset?pathNumber=2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            }
+            if (response.ok) {
+                alert("기록이 정상적으로 등록되었습니다.");
+                window.location.href = "index.html";
+            } else {
+                const errText = await response.text();
+                alert("저장 실패: " + errText);
+                submitBtn.disabled = false;
+            }
+        } catch (error) {
+            alert("서버 통신 중 오류 발생: " + error.message);
+            submitBtn.disabled = false;
+        }
+    }
+
+    function initializeFormFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        const recordsParam = urlParams.get('records');
+        if (id) {
+            recordSetId = id;
+        }
+        if (recordsParam) {
+            try {
+                const decoded = decodeURIComponent(recordsParam);
+                const records = JSON.parse(decoded);
+                if (Array.isArray(records) && records.length === 4) {
+                    for (let i = 0; i < 4; i++) {
+                        const rec = records[i];
+                        const nicknameInput = playerForm.querySelector(`input[name="records[${i}].nickname"]`);
+                        const scoreInput = playerForm.querySelector(`input[name="records[${i}].score"]`);
+                        const yakuInput = playerForm.querySelector(`input[name="records[${i}].yakuList"]`);
+                        if (nicknameInput) nicknameInput.value = rec.nickname || '';
+                        if (scoreInput) scoreInput.value = rec.score != null ? rec.score : '';
+                        if (yakuInput && Array.isArray(rec.yakuList)) {
+                            yakuInput.value = rec.yakuList.join(', ');
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error('폼 초기화 에러:', e);
+            }
+        }
+    }
+
+    submitBtn.addEventListener("click", submitForm);
+    scoreInputs.forEach(input => input.addEventListener("input", validateSum));
+
+    window.onload = () => {
+        loadNicknames();
+        initializeFormFromURL();
+        validateSum();
+    }
+</script>
+
+</body>
+</html>

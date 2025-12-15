@@ -1,0 +1,207 @@
+/* 전체 컨테이너 설정 */
+body {
+  margin: 0;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* 메인 컨테이너 (타이틀, 버튼, 테이블 정보 포함) */
+.main-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+h1 {
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 1.8em;
+  width: 100%;
+}
+
+#btnContainer {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+button {
+  flex: 1 1 auto;
+  min-width: 70px;
+  padding: 10px 8px;
+  font-size: 0.95em;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.table-info,
+#noticeTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  box-sizing: border-box;
+}
+
+.table-info h2 {
+  font-size: 1.3em;
+  margin-bottom: 10px;
+}
+
+.ranking-table,
+#rankingTable {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin-top: 30px;
+  box-sizing: border-box;
+}
+
+.ranking-table h2 {
+  font-size: 1.3em;
+  margin-bottom: 10px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px 4px;
+  text-align: center;
+  box-sizing: border-box;
+  font-size: 0.9em;
+}
+
+th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.nickname-cell, td.nickname-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 120px;
+}
+
+a.detail-link {
+  color: #1a73e8;
+  cursor: pointer;
+}
+
+a.detail-link:hover {
+  color: #0e4da4;
+}
+
+#loginForm {
+  margin-top: 20px;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+#loginForm input {
+  height: 28px;
+  font-size: 0.9em;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+#userId, #userPw {
+  width: 80px;
+  min-width: 70px;
+}
+
+#loginBtn {
+  padding: 5px 10px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+#loginMessage {
+  color: red;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+footer {
+  margin-top: 40px;
+  padding: 20px 0;
+  text-align: center;
+  background-color: #f9f9f9;
+  font-size: 0.9em;
+  color: #555;
+}
+
+footer a {
+  color: #1DA1F2;
+  text-decoration: none;
+  margin-left: 8px;
+  font-size: 1.2em;
+}
+
+footer a:hover {
+  color: #0d95e8;
+}
+
+a:-webkit-any-link {
+  color: #1a73e8;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* 모바일용 CSS */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.5em;
+  }
+
+  button {
+    font-size: 0.9em;
+    padding: 8px 6px;
+  }
+
+  th, td {
+    padding: 6px 2px;
+    font-size: 0.85em;
+  }
+
+  #btnContainer {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.3em;
+  }
+
+  button {
+    font-size: 0.85em;
+    padding: 7px 5px;
+  }
+
+  th, td {
+    padding: 5px 2px;
+    font-size: 0.8em;
+  }
+
+  #btnContainer {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  button {
+    width: 100%;
+  }
+}
